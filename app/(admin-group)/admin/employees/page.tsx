@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import AddEmployeeDialog from "@/app/(admin-group)/admin/components/EmployeeFormDialog"
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,7 @@ export default function EmployeesPage() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
+
   const [employeeList, setEmployeeList] = useState<EmployeeType[]>(
     employees.map((e) => ({
       ...e,
@@ -112,6 +114,10 @@ export default function EmployeesPage() {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [pendingToggleEmployee, setPendingToggleEmployee] = useState<EmployeeType | null>(null)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null)
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const filteredEmployees = employeeList.filter((employee) => {
@@ -126,6 +132,24 @@ export default function EmployeesPage() {
   const handleClickDelete = (id: number) => {
     setSelectedEmployeeId(id)
     setIsDeleteDialogOpen(true)
+  }
+
+  const handleSaveEmployee = (data: any) => {
+    if (data.id) {
+      // c'est une modification
+      setEmployeeList((prev) =>
+        prev.map((emp) => (emp.id === data.id ? { ...emp, ...data } : emp))
+      )
+    } else {
+      // c'est un ajout
+      setEmployeeList((prev) => [
+        ...prev,
+        { ...data, id: Date.now(), status: "active" },
+      ])
+    }
+
+    setIsDialogOpen(false)
+    setSelectedEmployee(null)
   }
 
   const handleDeleteEmployee = async () => {
@@ -167,83 +191,17 @@ export default function EmployeesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Employés</h1>
           <p className="text-gray-600 mt-1">Gérez votre équipe et leurs plannings</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvel Employé
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Ajouter un nouvel employé</DialogTitle>
-              <DialogDescription>Remplissez les informations du nouvel employé</DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom complet</Label>
-                <Input placeholder="Nom et prénom" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input type="email" placeholder="email@salon.com" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Téléphone</Label>
-                <Input placeholder="06 12 34 56 78" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Poste</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un poste" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role} value={role.toLowerCase()}>
-                        {role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="hireDate">Date d'embauche</Label>
-                <Input type="date" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="schedule">Horaire</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Type de contrat" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full-time">Temps plein</SelectItem>
-                    <SelectItem value="part-time">Temps partiel</SelectItem>
-                    <SelectItem value="freelance">Freelance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="specialties">Spécialités</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {specialties.map((specialty) => (
-                    <label key={specialty} className="flex items-center space-x-2">
-                      <input type="checkbox" className="rounded" />
-                      <span className="text-sm">{specialty}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">Créer l'employé</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={() => {
+            setSelectedEmployee(null)
+            setIsDialogOpen(true)
+          }}
+          className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nouvel Employé
+        </Button>
+
       </div>
 
       {/* Stats Cards */}
@@ -390,7 +348,7 @@ export default function EmployeesPage() {
                     {/* 🔁 Toggle avec confirmation */}
                     <TableCell>
                       <Switch
-                        key={employee.id + employee.status} // force le re-render si Annuler
+                        key={employee.id + employee.status}
                         checked={employee.status === "active"}
                         onCheckedChange={() => handleToggleStatus(employee)}
                       />
@@ -398,9 +356,18 @@ export default function EmployeesPage() {
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedEmployee(employee)
+                            setIsDialogOpen(true)
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
+
+
                         <Button
                           variant="ghost"
                           size="icon"
@@ -437,6 +404,16 @@ export default function EmployeesPage() {
         title="Supprimer cet employé ?"
         description="Cette action est irréversible. Voulez-vous vraiment supprimer cet employé ?"
         toastMessage="Employé supprimé avec succès."
+      />
+
+      <AddEmployeeDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        initialData={selectedEmployee}
+        onSubmit={handleSaveEmployee}
+        roles={["Coiffeuse", "Esthéticienne", "Manager"]}
+        specialties={["Coloration", "Massage", "Onglerie"]}
+        mode={selectedEmployee ? "edit" : "add"}
       />
 
     </div>
