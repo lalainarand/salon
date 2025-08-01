@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
+import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import {
   Dialog,
   DialogContent,
@@ -91,8 +93,32 @@ export default function CategoriesPage() {
   const filteredCategories = categories.filter(
     (category) =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      category.description.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const [dialogOpenId, setDialogOpenId] = useState<number | null>(null)
+  const [statusMap, setStatusMap] = useState<Map<number, string>>(
+    new Map(categories.map((c) => [c.id, c.status]))
+  )
+
+  const handleToggleStatus = (categoryId: number) => {
+    setStatusMap((prev) => {
+      const newMap = new Map(prev)
+      const current = newMap.get(categoryId)
+      newMap.set(categoryId, current === "active" ? "inactive" : "active")
+      return newMap
+    })
+    setDialogOpenId(null)
+  }
+  const [categoriesState, setCategoriesState] = useState(categories)
+
+  const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
+
+  const handleDeleteCategory = async (id: number) => {
+    // await axios.delete(`/api/categories/${id}`)
+
+    setCategoriesState(prev => prev.filter(c => c.id !== id))
+  }
 
   return (
     <div className="space-y-6">
@@ -160,7 +186,7 @@ export default function CategoriesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Catégories Actives</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {categories.filter((c) => c.status === "active").length}
+                  {[...statusMap.values()].filter((s) => s === "active").length}
                 </p>
               </div>
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -199,7 +225,7 @@ export default function CategoriesPage() {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Recherche */}
       <Card>
         <CardHeader>
           <CardTitle>Recherche</CardTitle>
@@ -217,100 +243,90 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Categories Grid */}
+      {/* Catégories */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCategories.map((category) => (
-          <Card key={category.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                    style={{ backgroundColor: category.color }}
-                  ></div>
-                  <CardTitle className="text-lg">{category.name}</CardTitle>
-                </div>
-                {getStatusBadge(category.status)}
-              </div>
-              <CardDescription>{category.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Services</span>
-                  <Badge variant="outline">{category.servicesCount}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Créée le</span>
-                  <span className="text-sm">{new Date(category.createdAt).toLocaleDateString("fr-FR")}</span>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" size="icon">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        {categoriesState
+          .filter(
+            (category) =>
+              category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              category.description.toLowerCase().includes(searchTerm.toLowerCase())
+          ).map((category) => {
+            const currentStatus = statusMap.get(category.id) || "inactive"
+            return (
+              <Card key={category.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                        style={{ backgroundColor: category.color }}
+                      ></div>
+                      <CardTitle className="text-lg">{category.name}</CardTitle>
+                    </div>
 
-      {/* Categories Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vue Tableau</CardTitle>
-          <CardDescription>{filteredCategories.length} catégorie(s) trouvée(s)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Couleur</TableHead>
-                  <TableHead>Services</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Créée le</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCategories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell className="max-w-xs truncate">{category.description}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: category.color }}></div>
-                        <span className="text-sm text-gray-600">{category.color}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(currentStatus)}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDialogOpenId(category.id)}
+                        className="text-xs text-muted-foreground hover:text-primary"
+                      >
+                        Changer
+                      </Button>
+                    </div>
+                  </div>
+                  <CardDescription>{category.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Services</span>
                       <Badge variant="outline">{category.servicesCount}</Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(category.status)}</TableCell>
-                    <TableCell>{new Date(category.createdAt).toLocaleDateString("fr-FR")}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Créée le</span>
+                      <span className="text-sm">{new Date(category.createdAt).toLocaleDateString("fr-FR")}</span>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="ghost" size="icon">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => setDialogDeleteId(category.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+
+                <ConfirmDeleteDialog
+                  open={dialogDeleteId === category.id}
+                  onOpenChange={(open) => !open && setDialogDeleteId(null)}
+                  onConfirm={() => handleDeleteCategory(category.id)}
+                  title={`Supprimer la catégorie "${category.name}" ?`}
+                  description="Cette action est irréversible. Êtes-vous sûr(e) ?"
+                  toastMessage="Catégorie supprimée avec succès."
+                />
+
+                <ConfirmToggleDialog
+                  open={dialogOpenId === category.id}
+                  onOpenChange={(open) => setDialogOpenId(open ? category.id : null)}
+                  onConfirm={() => handleToggleStatus(category.id)}
+                  title="Changer le statut de la catégorie"
+                  description={`Souhaitez-vous vraiment ${currentStatus === "active" ? "désactiver" : "activer"
+                    } cette catégorie ?`}
+                  confirmLabel="Confirmer"
+                />
+              </Card>
+            )
+
+          })}
+      </div>
     </div>
   )
 }
