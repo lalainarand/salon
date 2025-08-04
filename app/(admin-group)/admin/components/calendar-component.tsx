@@ -4,8 +4,22 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
-import { CreateAppointmentDialog } from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
+import CreateAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
 
+
+type AppointmentType = {
+  id: number
+  client: string
+  phone: string
+  service: string
+  employee: string
+  date: string
+  time: string
+  duration: string
+  price: string
+  status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
+  notes?: string
+}
 const events = [
   {
     id: 1,
@@ -45,6 +59,24 @@ const timeSlots = [
 export function CalendarComponent() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"day" | "week">("day")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
+
+  const [services, setServices] = useState<string[]>(["Coupe", "Coloration", "Brushing"])
+  const [employees, setEmployees] = useState<string[]>(["Sophie", "Marie", "Pierre"])
+
+  const handleSaveAppointment = (data: AppointmentType) => {
+    if (selectedAppointment) {
+      console.log("Modifier le RDV :", data)
+      // 🔁 Appel API de modification ici
+    } else {
+      console.log("Créer le RDV :", data)
+      // 🔁 Appel API d’ajout ici
+    }
+    setSelectedAppointment(null)
+    setIsDialogOpen(false)
+  }
+
 
   const formatDate = (date: Date) =>
     date.toLocaleDateString("fr-FR", {
@@ -116,7 +148,27 @@ export function CalendarComponent() {
               Semaine
             </Button>
           </div>
-           <CreateAppointmentDialog />
+          <Button
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+            onClick={() => {
+              setSelectedAppointment(null) // 👈 assure que c’est en mode ajout
+              setIsDialogOpen(true)
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau Rendez-vous
+          </Button>
+
+          <CreateAppointmentDialog
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            onSubmit={handleSaveAppointment}
+            services={services}
+            employees={employees}
+            initialData={selectedAppointment}
+            mode={selectedAppointment ? "edit" : "add"}
+          />
+
         </div>
       </div>
 
