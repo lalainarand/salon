@@ -7,22 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
-import AddServiceDialog from "@/app/(admin-group)/admin/components/AddServiceDialog"
-import { ServiceFormValues } from "@/app/(admin-group)/admin/components/AddServiceDialog"
-
-
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { AddServiceDialog } from "@/app/(admin-group)/admin/components/AddServiceDialog"
+import { ServiceType, ServiceFormValues } from "@/app/(admin-group)/admin/components/AddServiceDialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Plus, Search, Edit, Trash2, Scissors, Clock, Euro } from "lucide-react"
 
 const services = [
@@ -110,6 +97,8 @@ export default function ServicesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
+  const [selectedService, setSelectedService] = useState<ServiceType | null>(null)
+
 
   const handleDeleteClick = (id: number) => {
     setSelectedServiceId(id)
@@ -118,16 +107,25 @@ export default function ServicesPage() {
 
 
 
-  const handleCreateService = async (data: ServiceFormValues) => {
+  const handleSaveService = async (data: ServiceFormValues) => {
     try {
-      // Ici tu peux appeler ton endpoint d’API pour créer le service
-      console.log("Nouveau service :", data)
+      if (selectedService) {
+        // mode edit
+        console.log("Mise à jour du service", selectedService.id, data)
+        // Appelle API update
+      } else {
+        // mode add
+        console.log("Création du service", data)
+        // Appelle API create
+      }
+
       setIsCreateDialogOpen(false)
-      // Tu peux ajouter un toast ici si besoin
+      setSelectedService(null)
     } catch (error) {
-      console.error("Erreur lors de la création du service", error)
+      console.error("Erreur lors de la sauvegarde", error)
     }
   }
+
 
   const handleConfirmDelete = async () => {
     if (selectedServiceId === null) return
@@ -309,9 +307,17 @@ export default function ServicesPage() {
                     <TableCell>{getStatusBadge(service.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedService(service)
+                            setIsCreateDialogOpen(true)
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="icon"
@@ -337,9 +343,14 @@ export default function ServicesPage() {
             </Table>
             <AddServiceDialog
               open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
+              onOpenChange={(open) => {
+                if (!open) setSelectedService(null)
+                setIsCreateDialogOpen(open)
+              }}
               categories={categories}
-              onSubmit={handleCreateService}
+              mode={selectedService ? "edit" : "add"}
+              initialData={selectedService}
+              onSubmit={handleSaveService}
             />
 
 
