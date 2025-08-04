@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
+import AddRoleDialog from "@/app/(admin-group)/admin/components/AddRoleDialog"
 import {
   Dialog,
   DialogContent,
@@ -163,12 +164,25 @@ export default function RolesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+
 
   const filteredRoles = roles.filter(
     (role) =>
       role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       role.description.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+  const handleCreateRole = (newRoleData: {
+    name: string
+    color: string
+    description: string
+    permissions: string[]
+  }) => {
+    console.log("Nouveau rôle à créer :", newRoleData)
+    // 👉 Appel API ici si besoin
+  }
 
   const handlePermissionChange = (permission: string, checked: boolean) => {
     if (checked) {
@@ -178,6 +192,28 @@ export default function RolesPage() {
     }
   }
 
+  const handleDeleteClick = (id: number) => {
+    setSelectedRoleId(id)
+    setOpenDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (selectedRoleId === null) return
+    try {
+      // 🔥 Appel à ton API ou logique de suppression
+      console.log("Suppression du rôle avec ID :", selectedRoleId)
+
+      // Exemple : await deleteRole(selectedRoleId)
+      // Revalidation ou refetch ici si nécessaire
+
+      setOpenDeleteDialog(false)
+      setSelectedRoleId(null)
+    } catch (error) {
+      console.error("Erreur lors de la suppression du rôle :", error)
+    }
+  }
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -186,66 +222,23 @@ export default function RolesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Rôles & Permissions</h1>
           <p className="text-gray-600 mt-1">Gérez les rôles et permissions de votre équipe</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau Rôle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Créer un nouveau rôle</DialogTitle>
-              <DialogDescription>Définissez un nouveau rôle avec ses permissions</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="roleName">Nom du rôle</Label>
-                  <Input placeholder="Ex: Manager, Employé..." />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="roleColor">Couleur</Label>
-                  <Input type="color" className="w-full h-10" defaultValue="#059669" />
-                </div>
-              </div>
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau Rôle
+          </Button>
 
-              <div className="space-y-2">
-                <Label htmlFor="roleDescription">Description</Label>
-                <Textarea placeholder="Description du rôle et de ses responsabilités..." />
-              </div>
+          <AddRoleDialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+            onSubmit={handleCreateRole}
+            allPermissions={allPermissions}
+          />
+        </div>
 
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Permissions</Label>
-                {allPermissions.map((category) => (
-                  <div key={category.category} className="space-y-3">
-                    <h4 className="font-medium text-sm text-gray-700 border-b pb-1">{category.category}</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {category.permissions.map((permission) => (
-                        <div key={permission.key} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={permission.key}
-                            checked={selectedPermissions.includes(permission.key)}
-                            onCheckedChange={(checked) => handlePermissionChange(permission.key, checked as boolean)}
-                          />
-                          <Label htmlFor={permission.key} className="text-sm font-normal cursor-pointer">
-                            {permission.label}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">Créer le rôle</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Stats Cards */}
@@ -365,9 +358,15 @@ export default function RolesPage() {
                     <Button variant="ghost" size="icon">
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteClick(role.id)}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
+
                   </div>
                 </div>
               </div>
@@ -375,60 +374,23 @@ export default function RolesPage() {
           </Card>
         ))}
       </div>
+      <ConfirmDeleteDialog
+        open={openDeleteDialog}
+        onOpenChange={setOpenDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title="Supprimer ce rôle ?"
+        description="Cette action est irréversible. Voulez-vous vraiment supprimer ce rôle et ses permissions associées ?"
+        toastMessage="Rôle supprimé avec succès."
+      />
+      <AddRoleDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={handleCreateRole}
+        allPermissions={allPermissions}
+      />
 
-      {/* Roles Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vue Détaillée</CardTitle>
-          <CardDescription>{filteredRoles.length} rôle(s) trouvé(s)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Utilisateurs</TableHead>
-                  <TableHead>Permissions</TableHead>
-                  <TableHead>Créé le</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRoles.map((role) => (
-                  <TableRow key={role.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }}></div>
-                        <span className="font-medium">{role.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">{role.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{role.usersCount}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{role.permissions.length} permissions</Badge>
-                    </TableCell>
-                    <TableCell>{new Date(role.createdAt).toLocaleDateString("fr-FR")}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
+
   )
 }
