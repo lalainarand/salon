@@ -8,7 +8,28 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { CreateAppointmentDialog } from "@/app/(admin-group)/admin/components/CreateAppointmentDialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
+import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
+import { RefreshCw } from "lucide-react"
+
+type AppointmentType = {
+  id: number
+  client: string
+  phone: string
+  service: string
+  employee: string
+  date: string
+  time: string
+  duration: string
+  price: string
+  status: string
+  notes?: string
+}
+
+
+
+
 
 const appointments = [
   {
@@ -65,6 +86,19 @@ const appointments = [
   },
 ]
 
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    pending: "En attente",
+    confirmed: "Confirmé",
+    completed: "Terminé",
+    cancelled: "Annulé",
+    modified: "Modifié",
+    rescheduled: "Reporté",
+  }
+  return labels[status] || "Inconnu"
+}
+
+
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     pending: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
@@ -82,6 +116,16 @@ const getStatusBadge = (status: string) => {
 export default function AppointmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [openConfirmStatusDialog, setOpenConfirmStatusDialog] = useState(false)
+  const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<AppointmentType | null>(null)
+  const [nextStatus, setNextStatus] = useState<string>("")
+
+
+
+
+
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
@@ -91,6 +135,67 @@ export default function AppointmentsPage() {
     return matchesSearch && matchesStatus
   })
 
+  const getNextStatus = (current: string) => {
+    const order = ["pending", "confirmed", "completed", "cancelled"]
+    const index = order.indexOf(current)
+    return order[(index + 1) % order.length] || "pending"
+  }
+
+
+  const handleDeleteClick = (id: number) => {
+    setSelectedAppointmentId(id)
+    setOpenDeleteDialog(true)
+  }
+
+  const handleStatusClick = (appointment: AppointmentType) => {
+    setSelectedAppointmentForStatus(appointment)
+
+    // Exemple logique simple : toggle entre "pending" et "confirmed"
+    let newStatus = "confirmed"
+    if (appointment.status === "confirmed") newStatus = "completed"
+    if (appointment.status === "completed") newStatus = "cancelled"
+
+    setNextStatus(newStatus)
+    setOpenConfirmStatusDialog(true)
+  }
+
+
+
+  const handleConfirmStatusChange = async () => {
+    if (!selectedAppointmentForStatus) return
+
+    try {
+      const newStatus = getNextStatus(selectedAppointmentForStatus.status)
+      console.log(`Changer statut de ${selectedAppointmentForStatus.id} → ${newStatus}`)
+
+      // 👉 Appelle ton API ici
+
+      setOpenConfirmStatusDialog(false)
+      setSelectedAppointmentForStatus(null)
+      // Revalider la liste si besoin
+    } catch (error) {
+      console.error("Erreur lors du changement de statut", error)
+    }
+  }
+
+
+  const handleConfirmDelete = async () => {
+    if (selectedAppointmentId === null) return
+    try {
+      // 🔥 Appel API ici
+      console.log("Supprimer rendez-vous avec ID:", selectedAppointmentId)
+
+      // TODO: revalidation/mutation/refresh
+
+      setOpenDeleteDialog(false)
+      setSelectedAppointmentId(null)
+    } catch (error) {
+      console.error("Erreur lors de la suppression du rendez-vous", error)
+    }
+  }
+
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -99,7 +204,7 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Rendez-vous</h1>
           <p className="text-gray-600 mt-1">Gérez tous les rendez-vous de votre salon</p>
         </div>
-          <CreateAppointmentDialog />
+        <CreateAppointmentDialog />
       </div>
 
       {/* Filters */}
@@ -177,24 +282,57 @@ export default function AppointmentsPage() {
                     </TableCell>
                     <TableCell>{appointment.duration}</TableCell>
                     <TableCell className="font-medium">{appointment.price}</TableCell>
-                    <TableCell>{getStatusBadge(appointment.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(appointment.status)}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleStatusClick(appointment)}
+                        >
+                          <RefreshCw className="w-4 h-4 text-gray-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeleteClick(appointment.id)}
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
+
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            <ConfirmDeleteDialog
+              open={openDeleteDialog}
+              onOpenChange={setOpenDeleteDialog}
+              onConfirm={handleConfirmDelete}
+              title="Supprimer ce rendez-vous ?"
+              description="Cette action est irréversible. Voulez-vous vraiment supprimer ce rendez-vous ?"
+              toastMessage="Rendez-vous supprimé avec succès."
+            />
+            <ConfirmToggleDialog
+              open={openConfirmStatusDialog}
+              onOpenChange={setOpenConfirmStatusDialog}
+              onConfirm={handleConfirmStatusChange}
+              title="Changer le statut du rendez-vous"
+              description={`Voulez-vous vraiment changer le statut vers "${getStatusLabel(nextStatus)}" ?`}
+              confirmLabel="Oui, changer"
+            />
+
+
           </div>
         </CardContent>
       </Card>
