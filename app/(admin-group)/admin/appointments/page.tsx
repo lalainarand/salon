@@ -6,12 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CreateAppointmentDialog } from "@/app/(admin-group)/admin/components/CreateAppointmentDialog"
+import AddAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
+
+
+interface AddAppointmentDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  initialData?: AppointmentType | null
+  onSubmit: (data: AppointmentType) => void
+  mode?: "add" | "edit"
+}
 
 type AppointmentType = {
   id: number
@@ -23,12 +32,13 @@ type AppointmentType = {
   time: string
   duration: string
   price: string
-  status: string
+  status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
   notes?: string
 }
 
 
-
+const services = ["Coupe", "Coloration", "Barbe"]
+const employees = ["Sophie", "Rousseau", "Durand"]
 
 
 const appointments = [
@@ -98,7 +108,6 @@ const getStatusLabel = (status: string) => {
   return labels[status] || "Inconnu"
 }
 
-
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     pending: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
@@ -121,9 +130,21 @@ export default function AppointmentsPage() {
   const [openConfirmStatusDialog, setOpenConfirmStatusDialog] = useState(false)
   const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<AppointmentType | null>(null)
   const [nextStatus, setNextStatus] = useState<string>("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
 
 
 
+  const handleSaveAppointment = (data: AppointmentType) => {
+    if (selectedAppointment) {
+      console.log("Mise à jour du rendez-vous :", data)
+      // 🔁 appel API pour modifier
+    } else {
+      console.log("Création d’un nouveau rendez-vous :", data)
+      // 🔁 appel API pour ajouter
+    }
+    setSelectedAppointment(null)
+  }
 
 
 
@@ -147,6 +168,8 @@ export default function AppointmentsPage() {
     setOpenDeleteDialog(true)
   }
 
+
+
   const handleStatusClick = (appointment: AppointmentType) => {
     setSelectedAppointmentForStatus(appointment)
 
@@ -158,7 +181,6 @@ export default function AppointmentsPage() {
     setNextStatus(newStatus)
     setOpenConfirmStatusDialog(true)
   }
-
 
 
   const handleConfirmStatusChange = async () => {
@@ -204,7 +226,17 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Rendez-vous</h1>
           <p className="text-gray-600 mt-1">Gérez tous les rendez-vous de votre salon</p>
         </div>
-        <CreateAppointmentDialog />
+        <Button
+          onClick={() => {
+            setSelectedAppointment(null) // important pour vider le formulaire
+            setIsDialogOpen(true)
+          }}
+          className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nouveau Rendez-vous
+        </Button>
+
       </div>
 
       {/* Filters */}
@@ -297,9 +329,17 @@ export default function AppointmentsPage() {
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedAppointment(appointment)
+                            setIsDialogOpen(true)
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="icon"
@@ -331,7 +371,15 @@ export default function AppointmentsPage() {
               description={`Voulez-vous vraiment changer le statut vers "${getStatusLabel(nextStatus)}" ?`}
               confirmLabel="Oui, changer"
             />
-
+            <AddAppointmentDialog
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+              initialData={selectedAppointment}
+              onSubmit={handleSaveAppointment}
+              mode={selectedAppointment ? "edit" : "add"}
+              services={services}
+              employees={employees}
+            />
 
           </div>
         </CardContent>

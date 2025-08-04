@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
-import { CreateAppointmentDialog } from "@/app/(admin-group)/admin/components/CreateAppointmentDialog"
+import { CreateAppointmentDialog } from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
 
 const events = [
   {
