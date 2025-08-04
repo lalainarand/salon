@@ -5,12 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import { AddServiceDialog } from "@/app/(admin-group)/admin/components/AddServiceDialog"
 import { ServiceType, ServiceFormValues } from "@/app/(admin-group)/admin/components/AddServiceDialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Scissors, Clock, Euro } from "lucide-react"
+import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 
 const services = [
   {
@@ -98,11 +100,41 @@ export default function ServicesPage() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null)
+  const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
+  const [pendingService, setPendingService] = useState<ServiceType | null>(null)
+  const [originalStatus, setOriginalStatus] = useState<"active" | "inactive" | null>(null)
 
 
   const handleDeleteClick = (id: number) => {
     setSelectedServiceId(id)
     setOpenDeleteDialog(true)
+  }
+
+  const handleToggleStatus = (service: ServiceType) => {
+    setPendingService(service)
+    setOriginalStatus(service.status as "active" | "inactive")
+    setToggleDialogOpen(true)
+  }
+
+  const confirmToggleStatus = async () => {
+    if (!pendingService) return
+
+    try {
+      const newStatus = pendingService.status === "active" ? "inactive" : "active"
+
+      // 🔥 Appel à ton API pour modifier le statut
+      console.log("Changement de statut pour ID", pendingService.id, "=>", newStatus)
+
+      // ✅ Optionnel : mise à jour locale ou revalidation
+      // revalidate(), mutate(), ou mise à jour manuelle du state si besoin
+
+    } catch (error) {
+      console.error("Erreur lors du changement de statut :", error)
+    } finally {
+      setToggleDialogOpen(false)
+      setPendingService(null)
+      setOriginalStatus(null)
+    }
   }
 
 
@@ -304,7 +336,14 @@ export default function ServicesPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(service.status)}</TableCell>
+                    <TableCell>
+                      <Switch
+                        key={service.id + service.status}
+                        checked={service.status === "active"}
+                        onCheckedChange={() => handleToggleStatus(service)}
+                      />
+
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -352,6 +391,23 @@ export default function ServicesPage() {
               initialData={selectedService}
               onSubmit={handleSaveService}
             />
+            <ConfirmToggleDialog
+              open={toggleDialogOpen}
+              onOpenChange={(open) => {
+                setToggleDialogOpen(open)
+                if (!open && pendingService && originalStatus) {
+                  // Revenir à l’état initial du switch si on a annulé
+                  const updatedList = [...services] // ou filteredServices selon ton state
+                  const index = updatedList.findIndex(s => s.id === pendingService.id)
+                  if (index !== -1) {
+                    updatedList[index].status = originalStatus
+                    // Met à jour ton state si tu l’utilises
+                  }
+                }
+              }}
+              onConfirm={confirmToggleStatus}
+            />
+
 
 
           </div>

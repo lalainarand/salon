@@ -31,7 +31,7 @@ export interface ServiceFormValues {
 
 export interface ServiceType extends ServiceFormValues {
   id: number
-  status: number
+  status: string  
   popularity: number
 }
 
