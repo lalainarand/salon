@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
+import AddServiceDialog from "@/app/(admin-group)/admin/components/AddServiceDialog"
+import { ServiceFormValues } from "@/app/(admin-group)/admin/components/AddServiceDialog"
+
+
 import {
   Dialog,
   DialogContent,
@@ -103,6 +108,39 @@ export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
+
+  const handleDeleteClick = (id: number) => {
+    setSelectedServiceId(id)
+    setOpenDeleteDialog(true)
+  }
+
+
+
+  const handleCreateService = async (data: ServiceFormValues) => {
+    try {
+      // Ici tu peux appeler ton endpoint d’API pour créer le service
+      console.log("Nouveau service :", data)
+      setIsCreateDialogOpen(false)
+      // Tu peux ajouter un toast ici si besoin
+    } catch (error) {
+      console.error("Erreur lors de la création du service", error)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (selectedServiceId === null) return
+    try {
+      // 🔥 Ici, appelle ta logique de suppression API ou mutation
+
+
+      // Optionnel : rafraîchir la liste, revalidation, etc.
+      // mutate(), fetch(), ou recharger depuis le parent
+    } catch (err) {
+      console.error("Erreur lors de la suppression", err)
+    }
+  }
 
   const filteredServices = services.filter((service) => {
     const matchesSearch =
@@ -120,59 +158,16 @@ export default function ServicesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Services</h1>
           <p className="text-gray-600 mt-1">Gérez votre catalogue de services</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau Service
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Créer un nouveau service</DialogTitle>
-              <DialogDescription>Ajoutez un nouveau service à votre catalogue</DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom du service</Label>
-                <Input placeholder="Ex: Coupe + Brushing" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Catégorie</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category.toLowerCase()}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="duration">Durée (minutes)</Label>
-                <Input type="number" placeholder="60" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="price">Prix (€)</Label>
-                <Input type="number" placeholder="45" />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea placeholder="Description détaillée du service..." />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">Créer le service</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau Service
+          </Button>
+        </div>
+
       </div>
 
       {/* Stats Cards */}
@@ -317,7 +312,12 @@ export default function ServicesPage() {
                         <Button variant="ghost" size="icon">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeleteClick(service.id)}
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -325,7 +325,24 @@ export default function ServicesPage() {
                   </TableRow>
                 ))}
               </TableBody>
+              {/* 🗑️ Composant de confirmation de suppression */}
+              <ConfirmDeleteDialog
+                open={openDeleteDialog}
+                onOpenChange={setOpenDeleteDialog}
+                onConfirm={handleConfirmDelete}
+                title="Supprimer ce service ?"
+                description="Cette action est irréversible. Voulez-vous vraiment supprimer ce service ?"
+                toastMessage="Service supprimé avec succès."
+              />
             </Table>
+            <AddServiceDialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+              categories={categories}
+              onSubmit={handleCreateService}
+            />
+
+
           </div>
         </CardContent>
       </Card>
