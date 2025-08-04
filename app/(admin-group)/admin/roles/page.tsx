@@ -230,13 +230,6 @@ export default function RolesPage() {
             <Plus className="w-4 h-4 mr-2" />
             Nouveau Rôle
           </Button>
-
-          <AddRoleDialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
-            onSubmit={handleCreateRole}
-            allPermissions={allPermissions}
-          />
         </div>
 
       </div>
@@ -312,7 +305,7 @@ export default function RolesPage() {
           </div>
         </CardContent>
       </Card>
-
+      
       {/* Roles Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredRoles.map((role) => (
@@ -388,8 +381,6 @@ export default function RolesPage() {
         onSubmit={handleCreateRole}
         allPermissions={allPermissions}
       />
-
-
     </div>
 
   )
