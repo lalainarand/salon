@@ -5,20 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import AddEditCategoryDialog from "@/app/(admin-group)/admin/components/AddEditCategoryDialog"
 import { Plus, Search, Edit, Trash2, Tag, Palette } from "lucide-react"
 
 const categories = [
@@ -78,6 +67,14 @@ const categories = [
   },
 ]
 
+type CategoryType = {
+  id?: number
+  name: string
+  description: string
+  color: string
+}
+
+
 const getStatusBadge = (status: string) => {
   return status === "active" ? (
     <Badge className="bg-green-100 text-green-800">Active</Badge>
@@ -88,15 +85,12 @@ const getStatusBadge = (status: string) => {
 
 export default function CategoriesPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-
-  const filteredCategories = categories.filter(
-    (category) =>
-      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.description.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(null)
+  const [categoriesState, setCategoriesState] = useState(categories)
   const [dialogOpenId, setDialogOpenId] = useState<number | null>(null)
+  const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
+
   const [statusMap, setStatusMap] = useState<Map<number, string>>(
     new Map(categories.map((c) => [c.id, c.status]))
   )
@@ -110,15 +104,41 @@ export default function CategoriesPage() {
     })
     setDialogOpenId(null)
   }
-  const [categoriesState, setCategoriesState] = useState(categories)
-
-  const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
 
   const handleDeleteCategory = async (id: number) => {
     // await axios.delete(`/api/categories/${id}`)
-
-    setCategoriesState(prev => prev.filter(c => c.id !== id))
+    setCategoriesState((prev) => prev.filter((c) => c.id !== id))
   }
+
+  const handleSaveCategory = (data: CategoryType) => {
+    if (data.id) {
+      // MODIFICATION
+      setCategoriesState((prev) =>
+        prev.map((cat) => (cat.id === data.id ? { ...cat, ...data } : cat))
+      )
+    } else {
+      // AJOUT
+      const newCategory = {
+        ...data,
+        id: Date.now(), // ou géré par backend
+        createdAt: new Date().toISOString(),
+        servicesCount: 0,
+        status: "active",
+      }
+      setCategoriesState((prev) => [newCategory, ...prev])
+    }
+    setIsDialogOpen(false)
+  }
+  const handleCreateUser = () => {
+    setSelectedCategory(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleEditUser = (categories: any) => {
+    setSelectedCategory(categories)
+    setIsDialogOpen(true)
+  }
+
 
   return (
     <div className="space-y-6">
@@ -128,43 +148,13 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Catégories</h1>
           <p className="text-gray-600 mt-1">Organisez vos services par catégories</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvelle Catégorie
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Créer une nouvelle catégorie</DialogTitle>
-              <DialogDescription>Ajoutez une nouvelle catégorie pour organiser vos services</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom de la catégorie</Label>
-                <Input placeholder="Ex: Coiffure, Coloration..." />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea placeholder="Description de la catégorie..." />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="color">Couleur</Label>
-                <div className="flex items-center gap-3">
-                  <Input type="color" className="w-16 h-10" defaultValue="#8B4513" />
-                  <span className="text-sm text-gray-600">Choisissez une couleur pour identifier la catégorie</span>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">Créer la catégorie</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={handleCreateUser}
+          className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nouvelle Catégorie
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -289,7 +279,11 @@ export default function CategoriesPage() {
                       <span className="text-sm">{new Date(category.createdAt).toLocaleDateString("fr-FR")}</span>
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditUser(category)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
@@ -327,6 +321,13 @@ export default function CategoriesPage() {
 
           })}
       </div>
+      <AddEditCategoryDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        initialData={selectedCategory}
+        onSubmit={handleSaveCategory}
+      />
     </div>
+
   )
 }
