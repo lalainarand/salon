@@ -48,11 +48,11 @@ const menuItems = [
     url: "/admin/appointments",
     icon: Calendar,
   },
-  // {
-  //   title: "Statistiques",
-  //   url: "/admin/statistics",
-  //   icon: BarChart3,
-  // },
+  {
+    title: "Forfaits",
+    url: "/admin/forfaits",
+    icon: BarChart3,
+  },
   {
     title: "Rôles & Permissions",
     url: "/admin/roles",

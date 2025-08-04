@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Star, Award, Users, Clock } from "lucide-react"
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination } from 'swiper/modules'
+import AppointmentModal from "@/components/appointment-modal"
+import { useState } from "react"
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
@@ -14,6 +16,9 @@ import React, { createContext } from 'react'
 
 
 export default function HomePage() {
+
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+
   const testimonials = [
     {
       name: "Mialy",
@@ -48,7 +53,10 @@ export default function HomePage() {
                 soins personnalisés dans un cadre luxueux et apaisant.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-sage hover:bg-sage/90 text-white px-8 py-3 rounded-full">
+                <Button
+                  onClick={() => setIsAppointmentModalOpen(true)}
+                  className="bg-sage hover:bg-sage/90 text-white px-6 py-2 rounded-full transition-all duration-200"
+                >
                   Prendre rendez-vous
                 </Button>
                 <Button
@@ -193,7 +201,7 @@ export default function HomePage() {
                       alt={`Avant ${i + 1}`}
                       width={500}
                       height={500}
-                     className="w-full h-64 md:h-80 lg:h-[400px] object-cover"
+                      className="w-full h-64 md:h-80 lg:h-[400px] object-cover"
 
                     />
 
@@ -205,7 +213,7 @@ export default function HomePage() {
                       alt={`Après ${i + 1}`}
                       width={500}
                       height={500}
-                     className="w-full h-64 md:h-80 lg:h-[400px] object-cover"
+                      className="w-full h-64 md:h-80 lg:h-[400px] object-cover"
 
                     />
 
@@ -256,6 +264,11 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+      {/* 🧠 Ce composant doit absolument être monté ici aussi */}
+      <AppointmentModal
+        isOpen={isAppointmentModalOpen}
+        onClose={() => setIsAppointmentModalOpen(false)}
+      />
     </div>
   )
 }
