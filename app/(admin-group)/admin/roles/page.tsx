@@ -8,15 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import AddRoleDialog from "@/app/(admin-group)/admin/components/AddRoleDialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Search, Edit, Trash2, Shield, Users, Key } from "lucide-react"
@@ -165,6 +156,7 @@ export default function RolesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
+  const [selectedRole, setSelectedRole] = useState<typeof roles[0] | null>(null)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
 
 
@@ -174,14 +166,21 @@ export default function RolesPage() {
       role.description.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleCreateRole = (newRoleData: {
+  const handleCreateOrUpdateRole = (newRoleData: {
     name: string
     color: string
     description: string
     permissions: string[]
   }) => {
-    console.log("Nouveau rôle à créer :", newRoleData)
-    // 👉 Appel API ici si besoin
+    if (selectedRole) {
+      console.log("Mise à jour du rôle :", newRoleData)
+      // 👉 Appel API pour modifier ici
+    } else {
+      console.log("Création d’un nouveau rôle :", newRoleData)
+      // 👉 Appel API pour créer ici
+    }
+
+    setSelectedRole(null)
   }
 
   const handlePermissionChange = (permission: string, checked: boolean) => {
@@ -305,7 +304,7 @@ export default function RolesPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Roles Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredRoles.map((role) => (
@@ -348,9 +347,17 @@ export default function RolesPage() {
                 <div className="flex justify-between items-center text-sm text-gray-600">
                   <span>Créé le {new Date(role.createdAt).toLocaleDateString("fr-FR")}</span>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedRole(role)
+                        setIsCreateDialogOpen(true)
+                      }}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
+
                     <Button
                       variant="ghost"
                       size="icon"
@@ -377,10 +384,16 @@ export default function RolesPage() {
       />
       <AddRoleDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onSubmit={handleCreateRole}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open)
+          if (!open) setSelectedRole(null) // reset après fermeture
+        }}
+        onSubmit={handleCreateOrUpdateRole}
         allPermissions={allPermissions}
+        initialData={selectedRole}
+        mode={selectedRole ? "edit" : "add"}
       />
+
     </div>
 
   )

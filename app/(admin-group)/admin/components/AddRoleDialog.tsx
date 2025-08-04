@@ -1,20 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle, DialogTrigger
+  DialogHeader, DialogTitle
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-
-interface PermissionCategory {
-  category: string
-  permissions: { key: string; label: string }[]
-}
 
 interface AddRoleDialogProps {
   open: boolean
@@ -25,7 +20,20 @@ interface AddRoleDialogProps {
     description: string
     permissions: string[]
   }) => void
-  allPermissions: PermissionCategory[]
+  allPermissions: {
+    category: string
+    permissions: { key: string; label: string }[]
+  }[]
+  initialData?: {
+    id: number
+    name: string
+    description: string
+    usersCount: number
+    permissions: string[]
+    color: string
+    createdAt: string
+  } | null
+  mode?: "add" | "edit"
 }
 
 export default function AddRoleDialog({
@@ -33,11 +41,28 @@ export default function AddRoleDialog({
   onOpenChange,
   onSubmit,
   allPermissions,
+  initialData,
+  mode = "add"
 }: AddRoleDialogProps) {
   const [name, setName] = useState("")
   const [color, setColor] = useState("#059669")
   const [description, setDescription] = useState("")
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
+
+  // Pré-remplissage lors de l'ouverture en mode édition
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name)
+      setColor(initialData.color)
+      setDescription(initialData.description)
+      setSelectedPermissions(initialData.permissions)
+    } else {
+      setName("")
+      setColor("#059669")
+      setDescription("")
+      setSelectedPermissions([])
+    }
+  }, [initialData, open])
 
   const handlePermissionToggle = (key: string, checked: boolean) => {
     setSelectedPermissions((prev) =>
@@ -48,19 +73,19 @@ export default function AddRoleDialog({
   const handleSubmit = () => {
     onSubmit({ name, color, description, permissions: selectedPermissions })
     onOpenChange(false)
-    setName("")
-    setColor("#059669")
-    setDescription("")
-    setSelectedPermissions([])
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Créer un nouveau rôle</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Modifier un rôle" : "Créer un nouveau rôle"}
+          </DialogTitle>
           <DialogDescription>
-            Définissez un nouveau rôle avec ses permissions
+            {mode === "edit"
+              ? "Modifiez les détails du rôle existant"
+              : "Définissez un nouveau rôle avec ses permissions"}
           </DialogDescription>
         </DialogHeader>
 
@@ -129,7 +154,7 @@ export default function AddRoleDialog({
             className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
             onClick={handleSubmit}
           >
-            Créer le rôle
+            {mode === "edit" ? "Sauvegarder les modifications" : "Créer le rôle"}
           </Button>
         </DialogFooter>
       </DialogContent>
