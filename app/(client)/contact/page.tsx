@@ -1,11 +1,16 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MapPin, Phone, Mail, Clock, Instagram, Facebook } from "lucide-react"
+import AppointmentModal from "@/components/appointment-modal"
 
 export default function ContactPage() {
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const contactInfo = [
     {
       icon: MapPin,
@@ -180,7 +185,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-     
+
 
       {/* CTA Section */}
       <section className="py-20 bg-sage text-white">
@@ -189,6 +194,7 @@ export default function ContactPage() {
           <p className="text-xl mb-8 opacity-90">Contactez-nous dès maintenant pour planifier votre moment beauté</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
+              onClick={() => setIsAppointmentModalOpen(true)}
               size="lg"
               variant="secondary"
               className="bg-white text-sage hover:bg-gray-100 px-8 py-3 rounded-full"
@@ -205,6 +211,11 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+      {/* 🧠 Ce composant doit absolument être monté ici aussi */}
+      <AppointmentModal
+        isOpen={isAppointmentModalOpen}
+        onClose={() => setIsAppointmentModalOpen(false)}
+      />
     </div>
   )
 }

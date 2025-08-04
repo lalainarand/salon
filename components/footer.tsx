@@ -70,7 +70,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-700 mt-10 pt-6 text-center text-sm text-gray-400">
-          <p>© 2024 Beauty Salon. Tous droits réservés.</p>
+          <p>© 2025 Beauty Salon. Tous droits réservés.</p>
         </div>
       </div>
     </footer>

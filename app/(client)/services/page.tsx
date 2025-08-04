@@ -1,10 +1,15 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Star } from "lucide-react"
+import { useState } from "react"
 import Image from "next/image"
+import AppointmentModal from "@/components/appointment-modal"
 
 
 export default function ServicesPage() {
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const serviceCategories = [
     {
       title: "Coiffure & Styling",
@@ -248,6 +253,7 @@ export default function ServicesPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
+              onClick={() => setIsAppointmentModalOpen(true)}
               size="lg"
               variant="secondary"
               className="bg-white text-sage hover:bg-gray-100 px-8 py-3 rounded-full"
@@ -264,6 +270,11 @@ export default function ServicesPage() {
           </div>
         </div>
       </section>
+      {/* 🧠 Ce composant doit absolument être monté ici aussi */}
+      <AppointmentModal
+        isOpen={isAppointmentModalOpen}
+        onClose={() => setIsAppointmentModalOpen(false)}
+      />
     </div>
   )
 }

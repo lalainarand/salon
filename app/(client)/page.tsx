@@ -259,7 +259,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-playfair font-bold mb-6">Prête à vous faire chouchouter ?</h2>
           <p className="text-xl mb-8 opacity-90">Réservez dès maintenant votre moment de détente et de beauté</p>
-          <Button size="lg" variant="secondary" className="bg-white text-sage hover:bg-gray-100 px-8 py-3 rounded-full">
+          <Button onClick={() => setIsAppointmentModalOpen(true)} size="lg" variant="secondary" className="bg-white text-sage hover:bg-gray-100 px-8 py-3 rounded-full">
             Prendre rendez-vous maintenant
           </Button>
         </div>
