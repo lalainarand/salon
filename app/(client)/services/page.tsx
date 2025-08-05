@@ -6,6 +6,7 @@ import { Clock, Star } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
 import AppointmentModal from "@/components/appointment-modal"
+import PackageModal from "@/components/PackageModal"
 
 const serviceCategories = [
   {
@@ -174,6 +175,13 @@ export default function ServicesPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [preSelectedService, setPreSelectedService] = useState<ServiceType | null>(null)
   const [initialStep, setInitialStep] = useState<number>(1)
+  const [selectedPackage, setSelectedPackage] = useState<any | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleOpenModal = (pkg: any) => {
+    setSelectedPackage(pkg)
+    setIsModalOpen(true)
+  }
 
 
 
@@ -261,6 +269,7 @@ export default function ServicesPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
+                id: 1,
                 name: "Forfait Détente",
                 price: "120€",
                 originalPrice: "140€",
@@ -268,6 +277,7 @@ export default function ServicesPage() {
                 popular: false,
               },
               {
+                id: 2,
                 name: "Forfait Glamour",
                 price: "180€",
                 originalPrice: "210€",
@@ -275,6 +285,7 @@ export default function ServicesPage() {
                 popular: true,
               },
               {
+                id: 3,
                 name: "Forfait Prestige",
                 price: "250€",
                 originalPrice: "290€",
@@ -311,9 +322,11 @@ export default function ServicesPage() {
                       ? "bg-sage hover:bg-sage/90 text-white"
                       : "bg-white border-2 border-sage text-sage hover:bg-sage hover:text-white"
                       }`}
+                    onClick={() => handleOpenModal(package_)}
                   >
                     Réserver ce forfait
                   </Button>
+
                 </CardContent>
               </Card>
             ))}
@@ -358,6 +371,13 @@ export default function ServicesPage() {
         initialService={preSelectedService}
         initialStep={initialStep}
       />
+
+      <PackageModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        initialPackage={selectedPackage}
+      />
+
 
     </div>
   )

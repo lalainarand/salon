@@ -18,15 +18,8 @@ interface AppointmentModalProps {
     name: string
     price: number
     duration: string
-  }
+  } | null 
   initialStep?: number
-}
-
-type ServiceType = {
-  id: number
-  name: string
-  price: number
-  duration: string
 }
 
 
