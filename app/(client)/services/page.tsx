@@ -162,9 +162,19 @@ const serviceCategories = [
   },
 ];
 
+type ServiceType = {
+  id: number
+  name: string
+  price: number
+  duration: string
+}
+
 
 export default function ServicesPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [preSelectedService, setPreSelectedService] = useState<ServiceType | null>(null)
+  const [initialStep, setInitialStep] = useState<number>(1)
+
 
 
   return (
@@ -214,9 +224,22 @@ export default function ServicesPage() {
                         <span className="text-sm">{service.duration}</span>
                       </div>
                       <p className="text-gray-600">{service.description}</p>
-                      <Button className="w-full bg-sage hover:bg-sage/90 text-white rounded-full">
+                      <Button
+                        className="w-full bg-sage hover:bg-sage/90 text-white rounded-full"
+                        onClick={() => {
+                          setPreSelectedService({
+                            id: service.id,
+                            name: service.name,
+                            price: Number(service.price),
+                            duration: service.duration,
+                          })
+                          setInitialStep(2)
+                          setIsAppointmentModalOpen(true)
+                        }}
+                      >
                         Réserver ce service
                       </Button>
+
                     </CardContent>
                   </Card>
 
@@ -327,8 +350,15 @@ export default function ServicesPage() {
       {/* 🧠 Ce composant doit absolument être monté ici aussi */}
       <AppointmentModal
         isOpen={isAppointmentModalOpen}
-        onClose={() => setIsAppointmentModalOpen(false)}
+        onClose={() => {
+          setPreSelectedService(null) // Reset à la fermeture
+          setInitialStep(1)
+          setIsAppointmentModalOpen(false)
+        }}
+        initialService={preSelectedService}
+        initialStep={initialStep}
       />
+
     </div>
   )
 }

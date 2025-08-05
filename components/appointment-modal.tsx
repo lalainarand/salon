@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,29 @@ import { CalendarDays, Clock, CreditCard, User } from "lucide-react"
 interface AppointmentModalProps {
   isOpen: boolean
   onClose: () => void
+  initialService?: {
+    id: number
+    name: string
+    price: number
+    duration: string
+  }
+  initialStep?: number
 }
 
-export default function AppointmentModal({ isOpen, onClose }: AppointmentModalProps) {
+type ServiceType = {
+  id: number
+  name: string
+  price: number
+  duration: string
+}
+
+
+export default function AppointmentModal({
+  isOpen,
+  onClose,
+  initialService,
+  initialStep,
+}: AppointmentModalProps) {
   const [step, setStep] = useState(1)
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
@@ -24,7 +44,9 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
     name: string
     price: number
     duration: string
-  } | null>(null);
+  } | null>(initialService ?? null)
+
+
 
   const [paymentMethod, setPaymentMethod] = useState("")
 
@@ -56,6 +78,13 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
     setPaymentMethod("")
     onClose()
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(initialStep || 1)
+      setSelectedService(initialService ?? null)
+    }
+  }, [isOpen, initialStep, initialService])
 
 
 
