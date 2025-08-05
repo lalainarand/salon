@@ -7,111 +7,165 @@ import { useState } from "react"
 import Image from "next/image"
 import AppointmentModal from "@/components/appointment-modal"
 
+const serviceCategories = [
+  {
+    title: "Coiffure & Styling",
+    description: "Des coupes tendance aux colorations sophistiquées",
+    services: [
+      {
+        id: 1,
+        name: "Coupe femme",
+        price: "45€",
+        duration: "1h",
+        description: "Coupe personnalisée selon votre style",
+        image: "coiffure1.jpg"
+      },
+      {
+        id: 2,
+        name: "Coupe + Brushing",
+        price: "55€",
+        duration: "1h30",
+        description: "Coupe et mise en forme professionnelle",
+        image: "coiffure6.jpg"
+      },
+      {
+        id: 3,
+        name: "Coloration",
+        price: "80€",
+        duration: "2h",
+        description: "Coloration complète avec produits haut de gamme",
+        image: "coiffure2.jpg"
+      },
+      {
+        id: 4,
+        name: "Mèches",
+        price: "90€",
+        duration: "2h30",
+        description: "Mèches ou balayage pour illuminer vos cheveux",
+        image: "coiffure3.jpg"
+      },
+      {
+        id: 5,
+        name: "Soin capillaire",
+        price: "35€",
+        duration: "45min",
+        description: "Soin réparateur et nourrissant",
+        image: "coiffure8.jpg"
+      },
+    ],
+  },
+  {
+    title: "Soins du visage",
+    description: "Traitements personnalisés pour une peau éclatante",
+    services: [
+      {
+        id: 6,
+        name: "Soin hydratant",
+        price: "60€",
+        duration: "1h",
+        description: "Hydratation profonde pour tous types de peau",
+        image: "coiffure4.jpg"
+      },
+      {
+        id: 7,
+        name: "Soin anti-âge",
+        price: "85€",
+        duration: "1h30",
+        description: "Traitement raffermissant et lissant",
+        image: "coiffure7.jpg"
+      },
+      {
+        id: 8,
+        name: "Nettoyage de peau",
+        price: "70€",
+        duration: "1h15",
+        description: "Purification et extraction des impuretés",
+        image: "coiffure5.jpg"
+      },
+      {
+        id: 9,
+        name: "Soin éclat",
+        price: "65€",
+        duration: "1h",
+        description: "Illumine et unifie le teint",
+        image: "coiffure1.jpg"
+      },
+    ],
+  },
+  {
+    title: "Manucure & Pédicure",
+    description: "Soins des ongles et beauté des mains et pieds",
+    services: [
+      {
+        id: 10,
+        name: "Manucure classique",
+        price: "35€",
+        duration: "45min",
+        description: "Soin complet des ongles et des mains",
+        image: "coiffure6.jpg"
+      },
+      {
+        id: 11,
+        name: "Manucure semi-permanent",
+        price: "45€",
+        duration: "1h",
+        description: "Vernis longue tenue jusqu'à 3 semaines",
+        image: "coiffure7.jpg"
+      },
+      {
+        id: 12,
+        name: "Pédicure",
+        price: "40€",
+        duration: "1h",
+        description: "Soin complet des pieds et des ongles",
+        image: "coiffure4.jpg"
+      },
+    ],
+  },
+  {
+    title: "Bien-être & Relaxation",
+    description: "Moments de détente et de relaxation",
+    services: [
+      {
+        id: 13,
+        name: "Massage relaxant",
+        price: "70€",
+        duration: "1h",
+        description: "Massage corps complet pour se détendre",
+        image: "coiffure8.jpg"
+      },
+      {
+        id: 14,
+        name: "Massage du visage",
+        price: "45€",
+        duration: "30min",
+        description: "Massage anti-stress du visage et du crâne",
+        image: "coiffure5.jpg"
+      },
+      {
+        id: 15,
+        name: "Épilation sourcils",
+        price: "25€",
+        duration: "30min",
+        description: "Mise en forme parfaite des sourcils",
+        image: "coiffure2.jpg"
+      },
+      {
+        id: 16,
+        name: "Teinture sourcils/cils",
+        price: "30€",
+        duration: "45min",
+        description: "Intensification du regard",
+        image: "coiffure3.jpg"
+      },
+    ],
+  },
+];
+
 
 export default function ServicesPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
-  const serviceCategories = [
-    {
-      title: "Coiffure & Styling",
-      description: "Des coupes tendance aux colorations sophistiquées",
-      services: [
-        { name: "Coupe femme", price: "45€", duration: "1h", description: "Coupe personnalisée selon votre style", image: "coiffure1.jpg" },
-        {
-          name: "Coupe + Brushing",
-          price: "55€",
-          duration: "1h30",
-          description: "Coupe et mise en forme professionnelle",
-          image: "coiffure6.jpg"
-        },
-        {
-          name: "Coloration",
-          price: "80€",
-          duration: "2h",
-          description: "Coloration complète avec produits haut de gamme",
-          image: "coiffure2.jpg"
-        },
-        {
-          name: "Mèches",
-          price: "90€",
-          duration: "2h30",
-          description: "Mèches ou balayage pour illuminer vos cheveux",
-          image: "coiffure3.jpg"
-        },
-        { name: "Soin capillaire", price: "35€", duration: "45min", description: "Soin réparateur et nourrissant", image: "coiffure8.jpg" },
-      ],
-    },
-    {
-      title: "Soins du visage",
-      description: "Traitements personnalisés pour une peau éclatante",
-      services: [
-        {
-          name: "Soin hydratant",
-          price: "60€",
-          duration: "1h",
-          description: "Hydratation profonde pour tous types de peau",
-          image: "coiffure4.jpg"
-        },
-        { name: "Soin anti-âge", price: "85€", duration: "1h30", description: "Traitement raffermissant et lissant", image: "coiffure7.jpg" },
-        {
-          name: "Nettoyage de peau",
-          price: "70€",
-          duration: "1h15",
-          description: "Purification et extraction des impuretés",
-          image: "coiffure5.jpg"
-        },
-        { name: "Soin éclat", price: "65€", duration: "1h", description: "Illumine et unifie le teint", image: "coiffure1.jpg" },
-      ],
-    },
-    {
-      title: "Manucure & Pédicure",
-      description: "Soins des ongles et beauté des mains et pieds",
-      services: [
-        {
-          name: "Manucure classique",
-          price: "35€",
-          duration: "45min",
-          description: "Soin complet des ongles et des mains",
-          image: "coiffure6.jpg"
-        },
-        {
-          name: "Manucure semi-permanent",
-          price: "45€",
-          duration: "1h",
-          description: "Vernis longue tenue jusqu'à 3 semaines",
-          image: "coiffure7.jpg"
-        },
-        { name: "Pédicure", price: "40€", duration: "1h", description: "Soin complet des pieds et des ongles", image: "coiffure4.jpg" },
-      ],
-    },
-    {
-      title: "Bien-être & Relaxation",
-      description: "Moments de détente et de relaxation",
-      services: [
-        {
-          name: "Massage relaxant",
-          price: "70€",
-          duration: "1h",
-          description: "Massage corps complet pour se détendre",
-          image: "coiffure8.jpg"
-        },
-        {
-          name: "Massage du visage",
-          price: "45€",
-          duration: "30min",
-          description: "Massage anti-stress du visage et du crâne",
-          image: "coiffure5.jpg"
-        },
-        {
-          name: "Épilation sourcils",
-          price: "25€",
-          duration: "30min",
-          description: "Mise en forme parfaite des sourcils",
-          image: "coiffure2.jpg"
-        },
-        { name: "Teinture sourcils/cils", price: "30€", duration: "45min", description: "Intensification du regard", image: "coiffure3.jpg" },
-      ],
-    },
-  ]
+
 
   return (
     <div className="min-h-screen">

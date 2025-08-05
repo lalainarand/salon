@@ -19,17 +19,24 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
   const [step, setStep] = useState(1)
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
-  const [selectedService, setSelectedService] = useState("")
+  const [selectedService, setSelectedService] = useState<{
+    id: number
+    name: string
+    price: number
+    duration: string
+  } | null>(null);
+
   const [paymentMethod, setPaymentMethod] = useState("")
 
   const services = [
-    { name: "Coupe & Brushing", price: 45, duration: "1h" },
-    { name: "Coloration", price: 80, duration: "2h" },
-    { name: "Soin du visage", price: 60, duration: "1h30" },
-    { name: "Manucure", price: 35, duration: "45min" },
-    { name: "Pédicure", price: 40, duration: "1h" },
-    { name: "Massage relaxant", price: 70, duration: "1h" },
-  ]
+    { id: 1, name: "Coupe femme", price: 45, duration: "1h" },
+    { id: 2, name: "Coupe + Brushing", price: 80, duration: "2h" },
+    { id: 3, name: "Coloration", price: 60, duration: "1h30" },
+    { id: 4, name: "Mèches", price: 35, duration: "45min" },
+    { id: 5, name: "Soin capillaire", price: 40, duration: "1h" },
+    { id: 6, name: "Soin hydratant", price: 70, duration: "1h" },
+  ];
+
 
   const timeSlots = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
 
@@ -45,12 +52,12 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
     setStep(1)
     setSelectedDate(undefined)
     setSelectedTime("")
-    setSelectedService("")
+    setSelectedService(null)
     setPaymentMethod("")
     onClose()
   }
 
-  const selectedServiceDetails = services.find((s) => s.name === selectedService)
+
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -65,9 +72,8 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    i <= step ? "bg-sage text-white" : "bg-gray-200 text-gray-500"
-                  }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${i <= step ? "bg-sage text-white" : "bg-gray-200 text-gray-500"
+                    }`}
                 >
                   {i}
                 </div>
@@ -84,10 +90,10 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
                 {services.map((service) => (
                   <Card
                     key={service.name}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      selectedService === service.name ? "ring-2 ring-sage bg-sage/5" : "hover:shadow-md"
-                    }`}
-                    onClick={() => setSelectedService(service.name)}
+                    className={`${selectedService?.id === service.id ? "ring-2 ring-sage bg-sage/5" : "hover:shadow-md"}`}
+
+                    onClick={() => setSelectedService(service)}
+
                   >
                     <CardContent className="p-4">
                       <h4 className="font-semibold text-charcoal">{service.name}</h4>
@@ -175,22 +181,31 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
                   <CardTitle className="text-lg">Récapitulatif de votre rendez-vous</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {/* ID du service */}
+                  <div className="flex items-center space-x-3">
+                    <span className="font-medium text-muted-foreground">Identifiant :</span>
+                    <span>{selectedService?.id}</span>
+                  </div>
+
                   <div className="flex items-center space-x-3">
                     <User className="h-5 w-5 text-sage" />
-                    <span>{selectedService}</span>
+                    <span>{selectedService?.name}</span>
                   </div>
+
                   <div className="flex items-center space-x-3">
                     <CalendarDays className="h-5 w-5 text-sage" />
                     <span>{selectedDate?.toLocaleDateString("fr-FR")}</span>
                   </div>
+
                   <div className="flex items-center space-x-3">
                     <Clock className="h-5 w-5 text-sage" />
                     <span>{selectedTime}</span>
                   </div>
+
                   <div className="border-t pt-3 mt-3">
                     <div className="flex justify-between items-center text-lg font-semibold">
                       <span>Total:</span>
-                      <span className="text-sage">{selectedServiceDetails?.price}€</span>
+                      <span className="text-sage">{selectedService?.price}€</span>
                     </div>
                   </div>
                 </CardContent>
