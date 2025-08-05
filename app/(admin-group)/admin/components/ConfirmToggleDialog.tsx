@@ -56,7 +56,11 @@ export default function ConfirmToggleDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Annuler
           </Button>
-          <Button onClick={handleConfirm} disabled={loading}>
+          <Button
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+            onClick={handleConfirm}
+            disabled={loading}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>
