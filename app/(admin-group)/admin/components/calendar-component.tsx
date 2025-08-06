@@ -20,16 +20,14 @@ interface Service {
 }
 
 
-type AppointmentType = {
+type AppointmentFormType = {
   id: number
-  client: string
-  phone: number
-  service: string
+  user: User
+  service: Service
   employee: string
   date: string
   time: string
   duration: string
-  price: string
   status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
   notes?: string
 }
@@ -75,7 +73,7 @@ export function CalendarComponent() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"day" | "week">("day")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
   const [users, setUsers] = useState<User[]>([
     { id: 1, name: "Sophie", phone: 326565842 },
     { id: 2, name: "Rousseau", phone: 345652158 },
@@ -89,7 +87,7 @@ export function CalendarComponent() {
   ])
 
 
-  const handleSaveAppointment = (data: AppointmentType) => {
+  const handleSaveAppointment = (data: AppointmentFormType) => {
     if (selectedAppointment) {
       console.log("Modifier le RDV :", data)
       // 🔁 Appel API de modification ici

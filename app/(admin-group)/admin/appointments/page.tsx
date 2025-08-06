@@ -13,31 +13,31 @@ import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmTog
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
 
-
-
-interface AddAppointmentDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  initialData?: AppointmentType | null
-  onSubmit: (data: AppointmentType) => void
-  mode?: "add" | "edit"
+interface User {
+  id: number
+  name: string
+  phone: number
 }
 
-type AppointmentType = {
+
+interface Service {
   id: number
-  client: string
-  phone: number
-  service: string
+  name: string
+  price: number
+}
+
+
+type AppointmentFormType = {
+  id: number
+  user: User
+  service: Service
   employee: string
   date: string
   time: string
   duration: string
-  price: string
   status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
   notes?: string
 }
-
-
 
 const users = [
   { id: 1, name: "Sophie", phone: 1234567890 },
@@ -54,61 +54,113 @@ const services = [
 ]
 
 
-
-const appointments = [
+const appointments: AppointmentFormType[] = [
   {
     id: 1,
-    client: "Marie Dubois",
-    phone: 1122334455,
-    service: "Coupe + Brushing",
+    user: {
+      id: 101,
+      name: "Marie Dubois",
+      phone: 1122334455,
+      email: "marie@example.com",
+      status: "active", // selon ton type User
+      createdAt: "2024-01-01",
+    },
+    service: {
+      id: 201,
+      name: "Coupe + Brushing",
+      description: "",
+      price: 65,
+      duration: "1h30",
+      categoryId: 1,
+      status: "active",
+    },
     employee: "Sophie Martin",
     date: "2024-01-15",
     time: "09:00",
     duration: "1h30",
     status: "confirmed",
-    price: "65€",
     notes: "Première visite",
   },
   {
     id: 2,
-    client: "Jean Martin",
-    phone: 1122334455,
-    service: "Barbe + Moustache",
+    user: {
+      id: 102,
+      name: "Jean Martin",
+      phone: 1122334455,
+      email: "jean@example.com",
+      status: "active",
+      createdAt: "2024-01-02",
+    },
+    service: {
+      id: 202,
+      name: "Barbe + Moustache",
+      description: "",
+      price: 35,
+      duration: "45min",
+      categoryId: 2,
+      status: "active",
+    },
     employee: "Pierre Durand",
     date: "2024-01-15",
     time: "10:30",
     duration: "45min",
     status: "pending",
-    price: "35€",
     notes: "",
   },
   {
     id: 3,
-    client: "Anna Leroy",
-    phone: 1122334455,
-    service: "Coloration complète",
+    user: {
+      id: 103,
+      name: "Anna Leroy",
+      phone: 1122334455,
+      email: "anna@example.com",
+      status: "active",
+      createdAt: "2024-01-03",
+    },
+    service: {
+      id: 203,
+      name: "Coloration complète",
+      description: "",
+      price: 120,
+      duration: "2h30",
+      categoryId: 3,
+      status: "active",
+    },
     employee: "Marie Rousseau",
     date: "2024-01-15",
     time: "14:00",
     duration: "2h30",
     status: "completed",
-    price: "120€",
     notes: "Couleur châtain clair",
   },
   {
     id: 4,
-    client: "Paul Durand",
-    phone: 1122334455,
-    service: "Coupe Homme",
+    user: {
+      id: 104,
+      name: "Paul Durand",
+      phone: 1122334455,
+      email: "paul@example.com",
+      status: "active",
+      createdAt: "2024-01-04",
+    },
+    service: {
+      id: 204,
+      name: "Coupe Homme",
+      description: "",
+      price: 25,
+      duration: "30min",
+      categoryId: 4,
+      status: "active",
+    },
     employee: "Sophie Martin",
     date: "2024-01-15",
     time: "16:00",
     duration: "30min",
     status: "cancelled",
-    price: "25€",
     notes: "Annulé par le client",
   },
 ]
+
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
@@ -142,14 +194,15 @@ export default function AppointmentsPage() {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [openConfirmStatusDialog, setOpenConfirmStatusDialog] = useState(false)
-  const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<AppointmentType | null>(null)
+  const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<AppointmentFormType | null>(null)
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
+
   const [nextStatus, setNextStatus] = useState<string>("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
 
 
 
-  const handleSaveAppointment = (data: AppointmentType) => {
+  const handleSaveAppointment = (data: AppointmentFormType) => {
     if (selectedAppointment) {
       console.log("Mise à jour du rendez-vous :", data)
       // 🔁 appel API pour modifier
@@ -164,11 +217,15 @@ export default function AppointmentsPage() {
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
-      appointment.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.service.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || appointment.status === statusFilter
+      appointment.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus =
+      statusFilter === "all" || appointment.status === statusFilter
+
     return matchesSearch && matchesStatus
   })
+
 
   const getNextStatus = (current: string) => {
     const order = ["pending", "confirmed", "completed", "cancelled"]
@@ -184,7 +241,7 @@ export default function AppointmentsPage() {
 
 
 
-  const handleStatusClick = (appointment: AppointmentType) => {
+  const handleStatusClick = (appointment: AppointmentFormType) => {
     setSelectedAppointmentForStatus(appointment)
 
     // Exemple logique simple : toggle entre "pending" et "confirmed"
@@ -314,11 +371,11 @@ export default function AppointmentsPage() {
                   <TableRow key={appointment.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{appointment.client}</p>
-                        <p className="text-sm text-gray-500">{appointment.phone}</p>
+                        <p className="font-medium">{appointment.user.name}</p>
+                        <p className="text-sm text-gray-500">{appointment.user.phone}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{appointment.service}</TableCell>
+                    <TableCell>{appointment.service.name}</TableCell>
                     <TableCell>{appointment.employee}</TableCell>
                     <TableCell>
                       <div>
@@ -327,15 +384,16 @@ export default function AppointmentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{appointment.duration}</TableCell>
-                    <TableCell className="font-medium">{appointment.price}</TableCell>
+                    <TableCell className="font-medium">
+                      {appointment.service.price}€
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getStatusBadge(appointment.status)}
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleStatusClick(appointment as AppointmentType)}
-
+                          onClick={() => handleStatusClick(appointment)}
                         >
                           <RefreshCw className="w-4 h-4 text-gray-500" />
                         </Button>
@@ -348,7 +406,7 @@ export default function AppointmentsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setSelectedAppointment(appointment as AppointmentType)
+                            setSelectedAppointment(appointment)
                             setIsDialogOpen(true)
                           }}
                         >
@@ -363,12 +421,12 @@ export default function AppointmentsPage() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
+
             </Table>
             <ConfirmDeleteDialog
               open={openDeleteDialog}
