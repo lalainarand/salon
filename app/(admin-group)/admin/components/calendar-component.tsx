@@ -10,6 +10,9 @@ interface User {
   id: number
   name: string
   phone: number
+  email?: string
+  status?: string
+  createdAt?: string
 }
 
 
@@ -17,6 +20,10 @@ interface Service {
   id: number
   name: string
   price: number
+  description?: string
+  duration?: string
+  categoryId?: number
+  status?: string
 }
 
 
@@ -75,15 +82,17 @@ export function CalendarComponent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
   const [users, setUsers] = useState<User[]>([
-    { id: 1, name: "Sophie", phone: 326565842 },
-    { id: 2, name: "Rousseau", phone: 345652158 },
-    { id: 3, name: "Durand", phone: 3325458789 },
+    { id: 1, name: "Marie Dubois", phone: 1234567890 },
+    { id: 2, name: "Jean Martin", phone: 9876543210 },
+    { id: 3, name: "Anna Leroy", phone: 1122334455 },
+    { id: 4, name: "Paul Durand", phone: 1122334455 },
   ])
 
   const [services, setServices] = useState<Service[]>([
-    { id: 1, name: "Coloration", price: 600 },
-    { id: 2, name: "Coupe", price: 900 },
-    { id: 3, name: "Brushing", price: 200 },
+    { id: 1, name: "Coupe + Brushing", price: 100 },
+    { id: 2, name: "Barbe + Moustache", price: 900 },
+    { id: 3, name: "Coloration complète", price: 100 },
+    { id: 4, name: "Coupe Homme", price: 1400 },
   ])
 
 

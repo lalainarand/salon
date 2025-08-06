@@ -17,6 +17,9 @@ interface User {
   id: number
   name: string
   phone: number
+  email?: string
+  status?: string
+  createdAt?: string
 }
 
 
@@ -24,6 +27,10 @@ interface Service {
   id: number
   name: string
   price: number
+  description?: string
+  duration?: string
+  categoryId?: number
+  status?: string
 }
 
 
@@ -40,17 +47,19 @@ type AppointmentFormType = {
 }
 
 const users = [
-  { id: 1, name: "Sophie", phone: 1234567890 },
-  { id: 2, name: "Rousseau", phone: 9876543210 },
-  { id: 3, name: "Durand", phone: 1122334455 },
+  { id: 1, name: "Marie Dubois", phone: 1234567890 },
+  { id: 2, name: "Jean Martin", phone: 9876543210 },
+  { id: 3, name: "Anna Leroy", phone: 1122334455 },
+  { id: 4, name: "Paul Durand", phone: 1122334455 },
 ]
 
 
 
 const services = [
-  { id: 1, name: "Coupe", price: 100 },
-  { id: 2, name: "Coloration", price: 900 },
-  { id: 3, name: "Barbe", price: 105 },
+  { id: 1, name: "Coupe + Brushing", price: 100 },
+  { id: 2, name: "Barbe + Moustache", price: 900 },
+  { id: 3, name: "Coloration complète", price: 100 },
+  { id: 4, name: "Coupe Homme", price: 1400 },
 ]
 
 
@@ -58,15 +67,15 @@ const appointments: AppointmentFormType[] = [
   {
     id: 1,
     user: {
-      id: 101,
+      id: 1,
       name: "Marie Dubois",
       phone: 1122334455,
       email: "marie@example.com",
-      status: "active", // selon ton type User
+      status: "active",
       createdAt: "2024-01-01",
     },
     service: {
-      id: 201,
+      id: 1,
       name: "Coupe + Brushing",
       description: "",
       price: 65,
@@ -84,7 +93,7 @@ const appointments: AppointmentFormType[] = [
   {
     id: 2,
     user: {
-      id: 102,
+      id: 2,
       name: "Jean Martin",
       phone: 1122334455,
       email: "jean@example.com",
@@ -92,7 +101,7 @@ const appointments: AppointmentFormType[] = [
       createdAt: "2024-01-02",
     },
     service: {
-      id: 202,
+      id: 2,
       name: "Barbe + Moustache",
       description: "",
       price: 35,
@@ -110,7 +119,7 @@ const appointments: AppointmentFormType[] = [
   {
     id: 3,
     user: {
-      id: 103,
+      id: 3,
       name: "Anna Leroy",
       phone: 1122334455,
       email: "anna@example.com",
@@ -118,7 +127,7 @@ const appointments: AppointmentFormType[] = [
       createdAt: "2024-01-03",
     },
     service: {
-      id: 203,
+      id: 3,
       name: "Coloration complète",
       description: "",
       price: 120,
@@ -136,7 +145,7 @@ const appointments: AppointmentFormType[] = [
   {
     id: 4,
     user: {
-      id: 104,
+      id: 4,
       name: "Paul Durand",
       phone: 1122334455,
       email: "paul@example.com",
@@ -144,7 +153,7 @@ const appointments: AppointmentFormType[] = [
       createdAt: "2024-01-04",
     },
     service: {
-      id: 204,
+      id: 4,
       name: "Coupe Homme",
       description: "",
       price: 25,

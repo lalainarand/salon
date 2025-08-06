@@ -37,12 +37,20 @@ interface User {
   id: number
   name: string
   phone: number
+  email?: string
+  status?: string
+  createdAt?: string
 }
+
 
 interface Service {
   id: number
   name: string
   price: number
+  description?: string
+  duration?: string
+  categoryId?: number
+  status?: string
 }
 
 interface AddAppointmentDialogProps {
@@ -68,7 +76,7 @@ export default function AddAppointmentDialog({
     if (mode === "edit" && initialData) {
       return initialData
     }
-    
+
     // Pour le mode "add", on initialise avec des valeurs vides
     return {
       id: Date.now(),
@@ -112,7 +120,7 @@ export default function AddAppointmentDialog({
       alert("Veuillez remplir tous les champs obligatoires")
       return
     }
-    
+
     onSubmit(form)
     onOpenChange(false)
   }
@@ -159,10 +167,10 @@ export default function AddAppointmentDialog({
           {/* Téléphone */}
           <div className="space-y-2">
             <Label>Téléphone</Label>
-            <Input 
-              value={form.user?.phone.toString() || ""} 
+            <Input
+              value={form.user?.phone.toString() || ""}
               placeholder="Sélectionnez d'abord un client"
-              readOnly 
+              readOnly
             />
           </div>
 
