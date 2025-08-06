@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import CreateAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 interface User {
   id: number
@@ -80,6 +81,7 @@ export function CalendarComponent() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"day" | "week">("day")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
   const [users, setUsers] = useState<User[]>([
     { id: 1, name: "Marie Dubois", phone: 1234567890 },
@@ -95,17 +97,31 @@ export function CalendarComponent() {
     { id: 4, name: "Coupe Homme", price: 1400 },
   ])
 
+  const handleSaveAppointment = async (data: AppointmentFormType) => {
+    try {
+      if (selectedAppointment) {
+        console.log("Mise à jour du rendez-vous :", data)
+        // 🔁 appel API pour modifier
+        // await updateAppointmentAPI(data)
 
-  const handleSaveAppointment = (data: AppointmentFormType) => {
-    if (selectedAppointment) {
-      console.log("Modifier le RDV :", data)
-      // 🔁 Appel API de modification ici
-    } else {
-      console.log("Créer le RDV :", data)
-      // 🔁 Appel API d’ajout ici
+        // Afficher la notification de succès
+        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`)
+
+      } else {
+        console.log("Création d'un nouveau rendez-vous :", data)
+        // 🔁 appel API pour ajouter
+        // await createAppointmentAPI(data)
+
+        // Afficher la notification de succès
+        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`)
+      }
+
+      setSelectedAppointment(null)
+
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde :", error)
+      // Ici vous pourriez aussi créer une notification d'erreur
     }
-    setSelectedAppointment(null)
-    setIsDialogOpen(false)
   }
 
 
@@ -199,7 +215,17 @@ export function CalendarComponent() {
             initialData={selectedAppointment}
             mode={selectedAppointment ? "edit" : "add"}
           />
+          <div>
+            {/* Votre contenu existant */}
 
+            {/* Composant de notification */}
+            <SuccessNotification
+              show={notification.show}
+              message={notification.message}
+              onClose={hideNotification}
+              duration={4000} // 4 secondes
+            />
+          </div>
         </div>
       </div>
 

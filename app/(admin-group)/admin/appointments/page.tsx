@@ -10,6 +10,7 @@ import AddAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppoin
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
 
@@ -205,22 +206,42 @@ export default function AppointmentsPage() {
   const [openConfirmStatusDialog, setOpenConfirmStatusDialog] = useState(false)
   const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<AppointmentFormType | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
+
 
   const [nextStatus, setNextStatus] = useState<string>("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
 
 
-  const handleSaveAppointment = (data: AppointmentFormType) => {
-    if (selectedAppointment) {
-      console.log("Mise à jour du rendez-vous :", data)
-      // 🔁 appel API pour modifier
-    } else {
-      console.log("Création d’un nouveau rendez-vous :", data)
-      // 🔁 appel API pour ajouter
+  const handleSaveAppointment = async (data: AppointmentFormType) => {
+    try {
+      if (selectedAppointment) {
+        console.log("Mise à jour du rendez-vous :", data)
+        // 🔁 appel API pour modifier
+        // await updateAppointmentAPI(data)
+
+        // Afficher la notification de succès
+        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`)
+
+      } else {
+        console.log("Création d'un nouveau rendez-vous :", data)
+        // 🔁 appel API pour ajouter
+        // await createAppointmentAPI(data)
+
+        // Afficher la notification de succès
+        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`)
+      }
+
+      setSelectedAppointment(null)
+
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde :", error)
+      // Ici vous pourriez aussi créer une notification d'erreur
     }
-    setSelectedAppointment(null)
   }
+
+
 
 
 
@@ -462,7 +483,17 @@ export default function AppointmentsPage() {
               services={services}
               users={users}
             />
+            <div>
+              {/* Votre contenu existant */}
 
+              {/* Composant de notification */}
+              <SuccessNotification
+                show={notification.show}
+                message={notification.message}
+                onClose={hideNotification}
+                duration={4000} // 4 secondes
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
