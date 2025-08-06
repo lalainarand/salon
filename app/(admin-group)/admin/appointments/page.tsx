@@ -14,6 +14,7 @@ import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
 
 
+
 interface AddAppointmentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -25,7 +26,7 @@ interface AddAppointmentDialogProps {
 type AppointmentType = {
   id: number
   client: string
-  phone: string
+  phone: number
   service: string
   employee: string
   date: string
@@ -37,15 +38,28 @@ type AppointmentType = {
 }
 
 
-const services = ["Coupe", "Coloration", "Barbe"]
-const employees = ["Sophie", "Rousseau", "Durand"]
+
+const users = [
+  { id: 1, name: "Sophie", phone: 1234567890 },
+  { id: 2, name: "Rousseau", phone: 9876543210 },
+  { id: 3, name: "Durand", phone: 1122334455 },
+]
+
+
+
+const services = [
+  { id: 1, name: "Coupe", price: 100 },
+  { id: 2, name: "Coloration", price: 900 },
+  { id: 3, name: "Barbe", price: 105 },
+]
+
 
 
 const appointments = [
   {
     id: 1,
     client: "Marie Dubois",
-    phone: "06 12 34 56 78",
+    phone: 1122334455,
     service: "Coupe + Brushing",
     employee: "Sophie Martin",
     date: "2024-01-15",
@@ -58,7 +72,7 @@ const appointments = [
   {
     id: 2,
     client: "Jean Martin",
-    phone: "06 98 76 54 32",
+    phone: 1122334455,
     service: "Barbe + Moustache",
     employee: "Pierre Durand",
     date: "2024-01-15",
@@ -71,7 +85,7 @@ const appointments = [
   {
     id: 3,
     client: "Anna Leroy",
-    phone: "06 11 22 33 44",
+    phone: 1122334455,
     service: "Coloration complète",
     employee: "Marie Rousseau",
     date: "2024-01-15",
@@ -84,7 +98,7 @@ const appointments = [
   {
     id: 4,
     client: "Paul Durand",
-    phone: "06 55 66 77 88",
+    phone: 1122334455,
     service: "Coupe Homme",
     employee: "Sophie Martin",
     date: "2024-01-15",
@@ -379,7 +393,7 @@ export default function AppointmentsPage() {
               onSubmit={handleSaveAppointment}
               mode={selectedAppointment ? "edit" : "add"}
               services={services}
-              employees={employees}
+              users={users}
             />
 
           </div>

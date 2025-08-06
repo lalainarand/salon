@@ -18,7 +18,7 @@ import {
 type AppointmentType = {
   id: number
   client: string
-  phone: string
+  phone: number
   service: string
   employee: string
   date: string
@@ -29,6 +29,20 @@ type AppointmentType = {
   notes?: string
 }
 
+interface User {
+  id: number
+  name: string
+  phone: number
+}
+
+interface Service {
+  id: number
+  name: string
+  price: number
+}
+
+
+
 
 interface AddAppointmentDialogProps {
   open: boolean
@@ -36,8 +50,9 @@ interface AddAppointmentDialogProps {
   initialData?: AppointmentType | null
   onSubmit: (data: AppointmentType) => void
   mode?: "add" | "edit"
-  services: string[]
-  employees: string[]
+  services: Service[]
+  users: User[]
+
 }
 
 
@@ -48,12 +63,12 @@ export default function AddAppointmentDialog({
   onSubmit,
   mode = "add",
   services,
-  employees,
+  users,
 }: AddAppointmentDialogProps) {
   const [form, setForm] = useState<AppointmentType>({
     id: initialData?.id ?? Date.now(),
     client: initialData?.client ?? "",
-    phone: initialData?.phone ?? "",
+    phone: initialData?.phone ?? 0,
     service: initialData?.service ?? "",
     employee: initialData?.employee ?? "",
     date: initialData?.date ?? "",
@@ -64,9 +79,20 @@ export default function AddAppointmentDialog({
     status: initialData?.status ?? "pending"
   })
 
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
+  const [phone, setPhone] = useState<number>(0)
+
+
   useEffect(() => {
     if (initialData) setForm(initialData)
   }, [initialData])
+
+  useEffect(() => {
+    const user = users.find((u) => u.id === selectedUserId)
+    if (user) {
+      setPhone(user.phone)
+    }
+  }, [selectedUserId, users])
 
   const handleChange = (field: keyof AppointmentType, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -91,45 +117,73 @@ export default function AddAppointmentDialog({
           <div className="space-y-2">
             <Label>Client</Label>
             <Select
-              value={form.employee}
-              onValueChange={(value) => handleChange("employee", value)}
+              value={form.client}
+              onValueChange={(value) => {
+                const selected = users.find((u) => u.name === value)
+                if (selected) {
+                  handleChange("client", selected.name)
+                  handleChange("phone", String(selected.phone))
+                  setSelectedUserId(selected.id)
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un client" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.name}>
+                    {user.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label>Téléphone</Label>
-            <Input value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} />
+            <Input
+              value={form.phone}
+              onChange={(e) => handleChange("phone", e.target.value)}
+            />
           </div>
+
           <div className="space-y-2">
             <Label>Service</Label>
             <Select
               value={form.service}
-              onValueChange={(value) => handleChange("service", value)}
+              onValueChange={(value) => {
+                handleChange("service", value);
+                const selected = services.find((s) => s.name === value);
+                if (selected) {
+                  handleChange("price", String(selected.price));
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un service" />
               </SelectTrigger>
               <SelectContent>
                 {services.map((serv) => (
-                  <SelectItem key={serv} value={serv}>{serv}</SelectItem>
+                  <SelectItem key={serv.id} value={serv.name}>
+                    {serv.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
 
+
           <div className="space-y-2">
-            <Label>Prix (€)</Label>
-            <Input type="number" value={form.price} onChange={(e) => handleChange("price", e.target.value)} />
+            <Label>Prix (Ar)</Label>
+            <Input
+              type="number"
+              value={form.price}
+              onChange={(e) => handleChange("price", e.target.value)}
+            />
           </div>
+
           <div className="space-y-2">
             <Label>Date</Label>
             <Input type="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} />

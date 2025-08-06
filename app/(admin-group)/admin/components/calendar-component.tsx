@@ -6,11 +6,24 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import CreateAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
 
+interface User {
+  id: number
+  name: string
+  phone: number
+}
+
+
+interface Service {
+  id: number
+  name: string
+  price: number
+}
+
 
 type AppointmentType = {
   id: number
   client: string
-  phone: string
+  phone: number
   service: string
   employee: string
   date: string
@@ -20,6 +33,8 @@ type AppointmentType = {
   status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
   notes?: string
 }
+
+
 const events = [
   {
     id: 1,
@@ -61,9 +76,18 @@ export function CalendarComponent() {
   const [view, setView] = useState<"day" | "week">("day")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
+  const [users, setUsers] = useState<User[]>([
+    { id: 1, name: "Sophie", phone: 326565842 },
+    { id: 2, name: "Rousseau", phone: 345652158 },
+    { id: 3, name: "Durand", phone: 3325458789 },
+  ])
 
-  const [services, setServices] = useState<string[]>(["Coupe", "Coloration", "Brushing"])
-  const [employees, setEmployees] = useState<string[]>(["Sophie", "Marie", "Pierre"])
+  const [services, setServices] = useState<Service[]>([
+    { id: 1, name: "Coloration", price: 600 },
+    { id: 2, name: "Coupe", price: 900 },
+    { id: 3, name: "Brushing", price: 200 },
+  ])
+
 
   const handleSaveAppointment = (data: AppointmentType) => {
     if (selectedAppointment) {
@@ -164,7 +188,7 @@ export function CalendarComponent() {
             onOpenChange={setIsDialogOpen}
             onSubmit={handleSaveAppointment}
             services={services}
-            employees={employees}
+            users={users}
             initialData={selectedAppointment}
             mode={selectedAppointment ? "edit" : "add"}
           />
