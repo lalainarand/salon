@@ -18,10 +18,17 @@ interface AppointmentModalProps {
     name: string
     price: number
     duration: string
-  } | null 
+  } | null
   initialStep?: number
 }
 
+interface ClientInfo {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  note :string
+}
 
 export default function AppointmentModal({
   isOpen,
@@ -32,12 +39,22 @@ export default function AppointmentModal({
   const [step, setStep] = useState(1)
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
+  const [isConfirmed, setIsConfirmed] = useState(false)
+  const [isshowbtn, setIsisshowbtn] = useState(true)
   const [selectedService, setSelectedService] = useState<{
     id: number
     name: string
     price: number
     duration: string
   } | null>(initialService ?? null)
+
+   const [clientInfo, setClientInfo] = useState<ClientInfo>({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      note : ""
+    })
 
 
 
@@ -65,11 +82,26 @@ export default function AppointmentModal({
 
   const handleClose = () => {
     setStep(1)
+    setClientInfo({ firstName: "", lastName: "", email: "", phone: "" , note : ""})
     setSelectedDate(undefined)
     setSelectedTime("")
     setSelectedService(null)
     setPaymentMethod("")
+    setIsConfirmed(false)
     onClose()
+  }
+
+  const handleConfirmReservation = () => {
+    setIsConfirmed(true)
+    setIsisshowbtn(false)
+    // Ici vous pouvez ajouter la logique pour envoyer les données au serveur
+    console.log("Réservation confirmée:", {
+      service: selectedService,
+      client: clientInfo,
+      date: selectedDate,
+      time: selectedTime,
+      paymentMethod
+    })
   }
 
   useEffect(() => {
@@ -90,6 +122,7 @@ export default function AppointmentModal({
 
         <div className="space-y-6">
           {/* Progress indicator */}
+          {isshowbtn && (
           <div className="flex items-center justify-between mb-8">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center">
@@ -103,6 +136,7 @@ export default function AppointmentModal({
               </div>
             ))}
           </div>
+          )}
 
           {/* Step 1: Service Selection */}
           {step === 1 && (
@@ -170,30 +204,54 @@ export default function AppointmentModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">Prénom</Label>
-                  <Input id="firstName" placeholder="Votre prénom" />
+                  <Input
+                    id="firstName"
+                    value={clientInfo.firstName}
+                    onChange={(e) => setClientInfo({ ...clientInfo, firstName: e.target.value })}
+                    placeholder="Votre prénom"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="lastName">Nom</Label>
-                  <Input id="lastName" placeholder="Votre nom" />
+                  <Input
+                    id="lastName"
+                    value={clientInfo.lastName}
+                    onChange={(e) => setClientInfo({ ...clientInfo, lastName: e.target.value })}
+                    placeholder="Votre nom"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="votre@email.com" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={clientInfo.email}
+                    onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
+                    placeholder="votre.email@exemple.com"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="phone">Téléphone</Label>
-                  <Input id="phone" placeholder="01 23 45 67 89" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={clientInfo.phone}
+                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
+                    placeholder="06 12 34 56 78"
+                  />
                 </div>
               </div>
               <div>
                 <Label htmlFor="notes">Notes (optionnel)</Label>
-                <Textarea id="notes" placeholder="Informations supplémentaires..." />
+                <Textarea id="notes"
+                onChange={(e) => setClientInfo({ ...clientInfo, note: e.target.value })}
+                 placeholder="Informations supplémentaires..." />
               </div>
             </div>
           )}
 
           {/* Step 4: Payment */}
-          {step === 4 && (
+          {step === 4 && !isConfirmed && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-charcoal mb-4">Récapitulatif et paiement</h3>
 
@@ -255,7 +313,7 @@ export default function AppointmentModal({
                       value="salon"
                       onChange={(e) => setPaymentMethod(e.target.value)}
                     />
-                    <Label htmlFor="salon">Payer au salon</Label>
+                    <Label htmlFor="salon">Payer sur place</Label>
                   </div>
                 </div>
               </div>
@@ -293,7 +351,37 @@ export default function AppointmentModal({
             </div>
           )}
 
+           {/* ÉTAPE 3 - Confirmation */}
+          {step === 4 && isConfirmed && (
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-green-800">Réservation confirmée !</h2>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-green-800">
+                  Votre rendez-vous pour <strong>{selectedService?.name}</strong>
+                </p>
+                <p className="text-green-700">
+                  le {selectedDate?.toLocaleDateString("fr-FR")} à {selectedTime}
+                </p>
+                <p className="text-green-600 mt-2">
+                  Un email de confirmation vous a été envoyé à {clientInfo.email}
+                </p>
+              </div>
+              <Button
+                onClick={handleClose}
+                className="bg-sage hover:bg-green-800 text-white w-full"
+              >
+                Fermer
+              </Button>
+            </div>
+          )}
+
           {/* Navigation buttons */}
+          {isshowbtn && (
           <div className="flex justify-between pt-6">
             <Button variant="outline" onClick={handlePrevious} disabled={step === 1}>
               Précédent
@@ -309,11 +397,7 @@ export default function AppointmentModal({
               </Button>
             ) : (
               <Button
-                onClick={() => {
-                  // Handle final submission
-                  alert("Rendez-vous confirmé!")
-                  handleClose()
-                }}
+                onClick={handleConfirmReservation}
                 disabled={!paymentMethod}
                 className="bg-sage hover:bg-sage/90"
               >
@@ -321,6 +405,9 @@ export default function AppointmentModal({
               </Button>
             )}
           </div>
+          )
+          }
+
         </div>
       </DialogContent>
     </Dialog>

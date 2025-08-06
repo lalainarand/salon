@@ -87,9 +87,22 @@ export default function AddAppointmentDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 py-4">
+
           <div className="space-y-2">
             <Label>Client</Label>
-            <Input value={form.client} onChange={(e) => handleChange("client", e.target.value)} />
+            <Select
+              value={form.employee}
+              onValueChange={(value) => handleChange("employee", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un client" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Téléphone</Label>
@@ -112,23 +125,11 @@ export default function AddAppointmentDialog({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Employé</Label>
-            <Select
-              value={form.employee}
-              onValueChange={(value) => handleChange("employee", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un employé" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp} value={emp}>{emp}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
+          <div className="space-y-2">
+            <Label>Prix (€)</Label>
+            <Input type="number" value={form.price} onChange={(e) => handleChange("price", e.target.value)} />
+          </div>
           <div className="space-y-2">
             <Label>Date</Label>
             <Input type="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} />
@@ -136,24 +137,6 @@ export default function AddAppointmentDialog({
           <div className="space-y-2">
             <Label>Heure</Label>
             <Input type="time" value={form.time} onChange={(e) => handleChange("time", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Durée</Label>
-            <Select value={form.duration} onValueChange={(value) => handleChange("duration", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Durée estimée" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="60">1 heure</SelectItem>
-                <SelectItem value="90">1h30</SelectItem>
-                <SelectItem value="120">2 heures</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Prix (€)</Label>
-            <Input type="number" value={form.price} onChange={(e) => handleChange("price", e.target.value)} />
           </div>
           <div className="col-span-2 space-y-2">
             <Label>Notes</Label>
