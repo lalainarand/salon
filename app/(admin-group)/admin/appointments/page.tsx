@@ -320,7 +320,8 @@ export default function AppointmentsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleStatusClick(appointment)}
+                          onClick={() => handleStatusClick(appointment as AppointmentType)}
+
                         >
                           <RefreshCw className="w-4 h-4 text-gray-500" />
                         </Button>
@@ -333,7 +334,7 @@ export default function AppointmentsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setSelectedAppointment(appointment)
+                            setSelectedAppointment(appointment as AppointmentType)
                             setIsDialogOpen(true)
                           }}
                         >
