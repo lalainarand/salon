@@ -9,6 +9,7 @@ import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmTog
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import AddEditCategoryDialog from "@/app/(admin-group)/admin/components/AddEditCategoryDialog"
 import { Plus, Search, Edit, Trash2, Tag, Palette } from "lucide-react"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 const categories = [
   {
@@ -90,7 +91,7 @@ export default function CategoriesPage() {
   const [categoriesState, setCategoriesState] = useState(categories)
   const [dialogOpenId, setDialogOpenId] = useState<number | null>(null)
   const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
-
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
   const [statusMap, setStatusMap] = useState<Map<number, string>>(
     new Map(categories.map((c) => [c.id, c.status]))
   )
@@ -108,6 +109,7 @@ export default function CategoriesPage() {
   const handleDeleteCategory = async (id: number) => {
     // await axios.delete(`/api/categories/${id}`)
     setCategoriesState((prev) => prev.filter((c) => c.id !== id))
+    showSuccess(`Suppression categorie succès`)
   }
 
   const handleSaveCategory = (data: CategoryType) => {
@@ -116,6 +118,7 @@ export default function CategoriesPage() {
       setCategoriesState((prev) =>
         prev.map((cat) => (cat.id === data.id ? { ...cat, ...data } : cat))
       )
+      showSuccess(`Modification categorie ${data?.name} succès`)
     } else {
       // AJOUT
       const newCategory = {
@@ -126,6 +129,7 @@ export default function CategoriesPage() {
         status: "active",
       }
       setCategoriesState((prev) => [newCategory, ...prev])
+      showSuccess(`Création categorie ${data?.name} succès`)
     }
     setIsDialogOpen(false)
   }
@@ -327,6 +331,16 @@ export default function CategoriesPage() {
         initialData={selectedCategory}
         onSubmit={handleSaveCategory}
       />
+
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
+
+      
     </div>
 
   )

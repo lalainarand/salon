@@ -11,6 +11,7 @@ import AddRoleDialog from "@/app/(admin-group)/admin/components/AddRoleDialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Search, Edit, Trash2, Shield, Users, Key } from "lucide-react"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 const roles = [
   {
@@ -158,7 +159,7 @@ export default function RolesPage() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
   const [selectedRole, setSelectedRole] = useState<typeof roles[0] | null>(null)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
-
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
   const filteredRoles = roles.filter(
     (role) =>
@@ -174,8 +175,11 @@ export default function RolesPage() {
   }) => {
     if (selectedRole) {
       console.log("Mise à jour du rôle :", newRoleData)
+      showSuccess(`Modification de  rôle ${newRoleData?.name} succès`)
+
       // 👉 Appel API pour modifier ici
     } else {
+      showSuccess(`Création d’un nouveau rôle ${newRoleData?.name} succès`)
       console.log("Création d’un nouveau rôle :", newRoleData)
       // 👉 Appel API pour créer ici
     }
@@ -201,7 +205,7 @@ export default function RolesPage() {
     try {
       // 🔥 Appel à ton API ou logique de suppression
       console.log("Suppression du rôle avec ID :", selectedRoleId)
-
+      showSuccess(`Modification de rôle succès`)
       // Exemple : await deleteRole(selectedRoleId)
       // Revalidation ou refetch ici si nécessaire
 
@@ -394,6 +398,13 @@ export default function RolesPage() {
         mode={selectedRole ? "edit" : "add"}
       />
 
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
     </div>
 
   )

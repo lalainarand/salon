@@ -9,6 +9,7 @@ import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDel
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 import { Switch } from "@/components/ui/switch"
 import AddPackageDialog from "@/app/(admin-group)/admin/components/AddPackageDialog"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 // ✅ Définition du type
 type PackageType = {
@@ -62,6 +63,7 @@ export default function ForfaitPage() {
   const [openToggleDialog, setOpenToggleDialog] = useState(false)
   const [packageToDelete, setPackageToDelete] = useState<PackageType | null>(null)
   const [packageToToggle, setPackageToToggle] = useState<PackageType | null>(null)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
   const handleDeleteClick = (pkg: PackageType) => {
     setPackageToDelete(pkg)
@@ -71,6 +73,7 @@ export default function ForfaitPage() {
   const handleConfirmDelete = () => {
     if (!packageToDelete) return
     setPackages((prev) => prev.filter((p) => p.id !== packageToDelete.id))
+    showSuccess(`Suppression de forfait succès`)
     setOpenDeleteDialog(false)
   }
 
@@ -94,11 +97,15 @@ export default function ForfaitPage() {
           p.id === selectedPackage.id ? { ...data, id: selectedPackage.id, active: selectedPackage.active } : p
         )
       )
+      showSuccess(`Modification de  forfait ${data?.name} succès`)
+
+
     } else {
       setPackages((prev) => [
         ...prev,
         { ...data, id: Date.now(), active: true },
       ])
+      showSuccess(`Création de nouveau forfait ${data?.name} succès`)
     }
     setOpenDialog(false)
     setSelectedPackage(null)
@@ -194,6 +201,15 @@ export default function ForfaitPage() {
         onConfirm={handleConfirmToggle}
         title="Changer le statut du forfait"
         description="Voulez-vous vraiment changer le statut de ce forfait ?"
+      />
+
+
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
       />
     </div>
   )

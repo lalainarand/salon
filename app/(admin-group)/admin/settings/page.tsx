@@ -10,8 +10,10 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Settings, Clock, MapPin, CreditCard, Bell, Shield, Save, Phone, Mail, Globe } from "lucide-react"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 export default function SettingsPage() {
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
   const [settings, setSettings] = useState({
     // Informations générales
     salonName: "Beauty Salon",
@@ -69,6 +71,8 @@ export default function SettingsPage() {
   const handleSave = () => {
     // Logique de sauvegarde
     console.log("Paramètres sauvegardés:", settings)
+    showSuccess(`Paramètres sauvegardés avec succès`)
+
   }
 
   return (
@@ -528,6 +532,14 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
     </div>
   )
 }

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Search, Edit, Trash2, Users } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 const initialUsers = [
   {
@@ -95,6 +96,7 @@ export default function UsersPage() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [pendingToggleUser, setPendingToggleUser] = useState<UserType | null>(null)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
   const handleEditUser = (user: any) => {
     setSelectedUser(user)
@@ -129,21 +131,33 @@ export default function UsersPage() {
 
   const handleSaveUser = (userData: any) => {
     if (userData.id) {
-      // Modification
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userData.id ? { ...u, ...userData } : u))
-      )
-    } else {
-      // Ajout
-      const newUser = {
-        ...userData,
-        id: Math.max(...users.map((u) => u.id)) + 1,
-        registrationDate: new Date().toISOString().split("T")[0],
-        lastVisit: new Date().toISOString().split("T")[0],
-        totalAppointments: 0,
-        totalSpent: "0€",
+      try {
+
+        // Modification
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userData.id ? { ...u, ...userData } : u))
+        )
+        showSuccess(`Modification des informations de ${userData?.name} succès`)
+      } catch (error) {
+        console.error("Erreur lors de la modification", error)
       }
-      setUsers((prev) => [...prev, newUser])
+    } else {
+      try {
+
+        // Ajout
+        const newUser = {
+          ...userData,
+          id: Math.max(...users.map((u) => u.id)) + 1,
+          registrationDate: new Date().toISOString().split("T")[0],
+          lastVisit: new Date().toISOString().split("T")[0],
+          totalAppointments: 0,
+          totalSpent: "0€",
+        }
+        setUsers((prev) => [...prev, newUser])
+        showSuccess(`Création de compte pour ${userData?.name} succès`)
+      } catch (error) {
+        console.error("Erreur lors de creation", error)
+      }
     }
     setIsDialogOpen(false)
   }
@@ -294,7 +308,7 @@ export default function UsersPage() {
                     <TableCell className="font-medium">{user.totalSpent}</TableCell>
                     <TableCell>
                       <Switch
-                        key={user.id + user.status} 
+                        key={user.id + user.status}
                         checked={user.status === "active"}
                         onCheckedChange={() => handleToggleStatus(user)}
                       />
@@ -353,6 +367,13 @@ export default function UsersPage() {
         confirmLabel="Oui, changer le statut"
       />
 
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
     </div>
   )
 }

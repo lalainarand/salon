@@ -13,6 +13,7 @@ import { ServiceType, ServiceFormValues } from "@/app/(admin-group)/admin/compon
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Scissors, Clock, Euro } from "lucide-react"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 const services = [
   {
@@ -103,6 +104,7 @@ export default function ServicesPage() {
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
   const [pendingService, setPendingService] = useState<ServiceType | null>(null)
   const [originalStatus, setOriginalStatus] = useState<"active" | "inactive" | null>(null)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
 
   const handleDeleteClick = (id: number) => {
@@ -144,10 +146,12 @@ export default function ServicesPage() {
       if (selectedService) {
         // mode edit
         console.log("Mise à jour du service", selectedService.id, data)
+        showSuccess(`Modification de  service ${data?.name} succès`)
         // Appelle API update
       } else {
         // mode add
         console.log("Création du service", data)
+        showSuccess(`Création de nouveau service ${data?.name} succès`)
         // Appelle API create
       }
 
@@ -166,9 +170,11 @@ export default function ServicesPage() {
 
 
       // Optionnel : rafraîchir la liste, revalidation, etc.
+      showSuccess(`Suppression de service succès`)
       // mutate(), fetch(), ou recharger depuis le parent
     } catch (err) {
       console.error("Erreur lors de la suppression", err)
+
     }
   }
 
@@ -409,6 +415,13 @@ export default function ServicesPage() {
             />
 
 
+            {/* Composant de notification */}
+            <SuccessNotification
+              show={notification.show}
+              message={notification.message}
+              onClose={hideNotification}
+              duration={4000} // 4 secondes
+            />
 
           </div>
         </CardContent>

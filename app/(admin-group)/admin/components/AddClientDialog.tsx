@@ -120,7 +120,7 @@ export default function AddClientDialog({
             <Input
               name="phone"
               placeholder="06 12 34 56 78"
-              value={formData.phone}
+              value={formData?.phone}
               onChange={handleChange}
             />
           </div>
@@ -129,7 +129,7 @@ export default function AddClientDialog({
             <Input
               name="birthdate"
               type="date"
-              value={formData.birthdate}
+              value={formData?.birthdate}
               onChange={handleChange}
             />
           </div>
@@ -138,7 +138,7 @@ export default function AddClientDialog({
             <Input
               name="address"
               placeholder="Adresse complète"
-              value={formData.address}
+              value={formData?.address}
               onChange={handleChange}
             />
           </div>

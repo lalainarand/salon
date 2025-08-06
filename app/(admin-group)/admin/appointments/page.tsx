@@ -484,7 +484,6 @@ export default function AppointmentsPage() {
               users={users}
             />
             <div>
-              {/* Votre contenu existant */}
 
               {/* Composant de notification */}
               <SuccessNotification

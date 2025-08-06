@@ -7,17 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import AddEmployeeDialog from "@/app/(admin-group)/admin/components/EmployeeFormDialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import { Plus, Search, Edit, Trash2, UserCheck, Calendar, Star } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
@@ -114,6 +105,7 @@ export default function EmployeesPage() {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [pendingToggleEmployee, setPendingToggleEmployee] = useState<EmployeeType | null>(null)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null)
@@ -140,12 +132,15 @@ export default function EmployeesPage() {
       setEmployeeList((prev) =>
         prev.map((emp) => (emp.id === data.id ? { ...emp, ...data } : emp))
       )
+      showSuccess(`Modification des informations de ${data?.name} succès`)
     } else {
       // c'est un ajout
       setEmployeeList((prev) => [
         ...prev,
         { ...data, id: Date.now(), status: "active" },
       ])
+      showSuccess(`Création de compte pour ${data?.name} succès`)
+
     }
 
     setIsDialogOpen(false)
@@ -159,6 +154,7 @@ export default function EmployeesPage() {
 
     setEmployeeList((prev) => prev.filter((e) => e.id !== selectedEmployeeId))
     setSelectedEmployeeId(null)
+    showSuccess(`Suppression succès`)
   }
 
   const handleToggleStatus = (employee: EmployeeType) => {
@@ -416,6 +412,13 @@ export default function EmployeesPage() {
         mode={selectedEmployee ? "edit" : "add"}
       />
 
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
     </div>
   )
 }
