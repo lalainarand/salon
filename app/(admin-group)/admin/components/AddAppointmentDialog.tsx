@@ -20,48 +20,9 @@ import {
   SelectContent,
   SelectItem
 } from "@/components/ui/select"
-
-type AppointmentFormType = {
-  id: number
-  user: User | null
-  service: Service | null
-  employee: Employees | null
-  date: string
-  time: string
-  duration: string
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
-  notes?: string
-}
-
-interface User {
-  id: number
-  name: string
-  phone: number
-  email?: string
-  status?: string
-  createdAt?: string
-}
-
-interface Employees {
-  id: number
-  name: string
-  phone: number
-  email?: string
-  status?: string
-  createdAt?: string
-  poste: string
-}
+import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin-group)/admin/Types/appointment"
 
 
-interface Service {
-  id: number
-  name: string
-  price: number
-  description?: string
-  duration?: string
-  categoryId?: number
-  status?: string
-}
 
 interface AddAppointmentDialogProps {
   open: boolean
@@ -250,7 +211,7 @@ export default function AddAppointmentDialog({
           </div>
 
           <div className="space-y-2">
-             <Label>Poste</Label>
+            <Label>Poste</Label>
             <Input
               type="text"
               value={form.employee?.poste || ""}

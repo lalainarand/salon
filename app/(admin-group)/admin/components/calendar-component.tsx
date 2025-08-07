@@ -5,50 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import CreateAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppointmentDialog"
+import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin-group)/admin/Types/appointment"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
-interface User {
-  id: number
-  name: string
-  phone: number
-  email?: string
-  status?: string
-  createdAt?: string
-}
-
-interface Employees {
-  id: number
-  name: string
-  phone: number
-  email?: string
-  status?: string
-  createdAt?: string
-  poste: string
-}
-
-
-interface Service {
-  id: number
-  name: string
-  price: number
-  description?: string
-  duration?: string
-  categoryId?: number
-  status?: string
-}
-
-
-type AppointmentFormType = {
-  id: number
-  user: User
-  service: Service
-  employee: string
-  date: string
-  time: string
-  duration: string
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
-  notes?: string
-}
 
 const employees: Employees[] = [
   {

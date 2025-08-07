@@ -10,52 +10,11 @@ import AddAppointmentDialog from "@/app/(admin-group)/admin/components/AddAppoin
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
+import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin-group)/admin/Types/appointment"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
 
-interface User {
-  id: number
-  name: string
-  phone: number
-  email?: string
-  status?: string
-  createdAt?: string
-}
-
-interface Employees {
-  id: number
-  name: string
-  phone: number
-  email?: string
-  status?: string
-  createdAt?: string
-  poste: string
-}
-
-
-interface Service {
-  id: number
-  name: string
-  price: number
-  description?: string
-  duration?: string
-  categoryId?: number
-  status?: string
-}
-
-
-type AppointmentFormType = {
-  id: number
-  user: User
-  service: Service
-  employee: Employees
-  date: string
-  time: string
-  duration: string
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
-  notes?: string
-}
 
 const users = [
   { id: 1, name: "Marie Dubois", phone: 1234567890 },
@@ -320,8 +279,8 @@ export default function AppointmentsPage() {
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
-      appointment.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase())
+      appointment.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.service?.name.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus =
       statusFilter === "all" || appointment.status === statusFilter
@@ -474,12 +433,12 @@ export default function AppointmentsPage() {
                   <TableRow key={appointment.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{appointment.user.name}</p>
-                        <p className="text-sm text-gray-500">{appointment.user.phone}</p>
+                        <p className="font-medium">{appointment.user?.name}</p>
+                        <p className="text-sm text-gray-500">{appointment.user?.phone}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{appointment.service.name}</TableCell>
-                    <TableCell>{appointment.employee.name}</TableCell>
+                    <TableCell>{appointment.service?.name}</TableCell>
+                    <TableCell>{appointment.employee?.name}</TableCell>
                     <TableCell>
                       <div>
                         <p>{new Date(appointment.date).toLocaleDateString("fr-FR")}</p>
@@ -488,7 +447,7 @@ export default function AppointmentsPage() {
                     </TableCell>
                     <TableCell>{appointment.duration}</TableCell>
                     <TableCell className="font-medium">
-                      {appointment.service.price}€
+                      {appointment.service?.price}€
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -1,4 +1,3 @@
-// types/appointment.ts
 
 export interface User {
   id: number
@@ -7,6 +6,16 @@ export interface User {
   email?: string
   status?: string
   createdAt?: string
+}
+
+export interface Employees {
+  id: number
+  name: string
+  phone: number
+  email?: string
+  status?: string
+  createdAt?: string
+  poste: string
 }
 
 export interface Service {
@@ -21,9 +30,9 @@ export interface Service {
 
 export type AppointmentFormType = {
   id: number
-  user: User
-  service: Service
-  employee: string
+  user: User | null
+  service: Service | null
+  employee: Employees | null
   date: string
   time: string
   duration: string
