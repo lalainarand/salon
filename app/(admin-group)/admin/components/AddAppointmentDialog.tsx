@@ -25,7 +25,7 @@ type AppointmentFormType = {
   id: number
   user: User | null
   service: Service | null
-  employee: string
+  employee: Employees | null
   date: string
   time: string
   duration: string
@@ -40,6 +40,16 @@ interface User {
   email?: string
   status?: string
   createdAt?: string
+}
+
+interface Employees {
+  id: number
+  name: string
+  phone: number
+  email?: string
+  status?: string
+  createdAt?: string
+  poste: string
 }
 
 
@@ -61,6 +71,7 @@ interface AddAppointmentDialogProps {
   mode?: "add" | "edit"
   services: Service[]
   users: User[]
+  employees: Employees[]
 }
 
 export default function AddAppointmentDialog({
@@ -71,6 +82,7 @@ export default function AddAppointmentDialog({
   mode = "add",
   services,
   users,
+  employees
 }: AddAppointmentDialogProps) {
   const [form, setForm] = useState<AppointmentFormType>(() => {
     if (mode === "edit" && initialData) {
@@ -82,7 +94,7 @@ export default function AddAppointmentDialog({
       id: Date.now(),
       user: null,
       service: null,
-      employee: "",
+      employee: null,
       date: "",
       time: "",
       duration: "60",
@@ -100,7 +112,7 @@ export default function AddAppointmentDialog({
         id: Date.now(),
         user: null,
         service: null,
-        employee: "",
+        employee: null,
         date: "",
         time: "",
         duration: "60",
@@ -206,6 +218,43 @@ export default function AddAppointmentDialog({
               type="number"
               value={form.service?.price.toString() || ""}
               placeholder="Sélectionnez d'abord un service"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="space-y-2">
+              <Label htmlFor="employee">Employé</Label>
+              <Select
+                value={form.employee?.id ? form.employee.id.toString() : ""}
+                onValueChange={(value) => {
+                  const selected = employees.find((u) => u.id.toString() === value)
+                  if (selected) {
+                    handleChange("employee", selected)
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un employé" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id.toString()}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+            </div>
+          </div>
+
+          <div className="space-y-2">
+             <Label>Poste</Label>
+            <Input
+              type="text"
+              value={form.employee?.poste || ""}
+              placeholder="Sélectionnez d'abord un employé"
               readOnly
             />
           </div>

@@ -16,6 +16,16 @@ interface User {
   createdAt?: string
 }
 
+interface Employees {
+  id: number
+  name: string
+  phone: number
+  email?: string
+  status?: string
+  createdAt?: string
+  poste: string
+}
+
 
 interface Service {
   id: number
@@ -40,6 +50,35 @@ type AppointmentFormType = {
   notes?: string
 }
 
+const employees: Employees[] = [
+  {
+    id: 1,
+    name: "Sophie Martin",
+    phone: 1234567890,
+    email: "sophie@example.com",
+    status: "active",
+    createdAt: "2024-01-01",
+    poste: "Coiffeuse",
+  },
+  {
+    id: 2,
+    name: "Pierre Durand",
+    phone: 9876543210,
+    email: "pierre@example.com",
+    status: "active",
+    createdAt: "2024-01-02",
+    poste: "Barbier",
+  },
+  {
+    id: 3,
+    name: "Marie Rousseau",
+    phone: 1122334455,
+    email: "marie@example.com",
+    status: "active",
+    createdAt: "2024-01-03",
+    poste: "Coloriste",
+  },
+]
 
 const events = [
   {
@@ -211,6 +250,7 @@ export function CalendarComponent() {
             onOpenChange={setIsDialogOpen}
             onSubmit={handleSaveAppointment}
             services={services}
+            employees={employees}
             users={users}
             initialData={selectedAppointment}
             mode={selectedAppointment ? "edit" : "add"}

@@ -23,6 +23,16 @@ interface User {
   createdAt?: string
 }
 
+interface Employees {
+  id: number
+  name: string
+  phone: number
+  email?: string
+  status?: string
+  createdAt?: string
+  poste: string
+}
+
 
 interface Service {
   id: number
@@ -39,7 +49,7 @@ type AppointmentFormType = {
   id: number
   user: User
   service: Service
-  employee: string
+  employee: Employees
   date: string
   time: string
   duration: string
@@ -63,6 +73,36 @@ const services = [
   { id: 4, name: "Coupe Homme", price: 1400 },
 ]
 
+const employees: Employees[] = [
+  {
+    id: 1,
+    name: "Sophie Martin",
+    phone: 1234567890,
+    email: "sophie@example.com",
+    status: "active",
+    createdAt: "2024-01-01",
+    poste: "Coiffeuse",
+  },
+  {
+    id: 2,
+    name: "Pierre Durand",
+    phone: 9876543210,
+    email: "pierre@example.com",
+    status: "active",
+    createdAt: "2024-01-02",
+    poste: "Barbier",
+  },
+  {
+    id: 3,
+    name: "Marie Rousseau",
+    phone: 1122334455,
+    email: "marie@example.com",
+    status: "active",
+    createdAt: "2024-01-03",
+    poste: "Coloriste",
+  },
+]
+
 
 const appointments: AppointmentFormType[] = [
   {
@@ -84,7 +124,15 @@ const appointments: AppointmentFormType[] = [
       categoryId: 1,
       status: "active",
     },
-    employee: "Sophie Martin",
+    employee: {
+      id: 1,
+      name: "Sophie Martin",
+      phone: 1234567890,
+      email: "sophie@example.com",
+      status: "active",
+      createdAt: "2024-01-01",
+      poste: "Coiffeuse",
+    },
     date: "2024-01-15",
     time: "09:00",
     duration: "1h30",
@@ -110,7 +158,16 @@ const appointments: AppointmentFormType[] = [
       categoryId: 2,
       status: "active",
     },
-    employee: "Pierre Durand",
+    employee: {
+      id: 2,
+      name: "Pierre Durand",
+      phone: 1234567890,
+      email: "sophie@example.com",
+      status: "active",
+      createdAt: "2024-01-01",
+      poste: "Coiffeuse",
+    }
+    ,
     date: "2024-01-15",
     time: "10:30",
     duration: "45min",
@@ -136,7 +193,15 @@ const appointments: AppointmentFormType[] = [
       categoryId: 3,
       status: "active",
     },
-    employee: "Marie Rousseau",
+    employee: {
+      id: 3,
+      name: "Marie Rousseau",
+      phone: 1234567890,
+      email: "sophie@example.com",
+      status: "active",
+      createdAt: "2024-01-01",
+      poste: "Coiffeuse",
+    },
     date: "2024-01-15",
     time: "14:00",
     duration: "2h30",
@@ -162,7 +227,15 @@ const appointments: AppointmentFormType[] = [
       categoryId: 4,
       status: "active",
     },
-    employee: "Sophie Martin",
+    employee: {
+      id: 4,
+      name: "Sophie Martin",
+      phone: 1234567890,
+      email: "sophie@example.com",
+      status: "active",
+      createdAt: "2024-01-01",
+      poste: "Coiffeuse",
+    },
     date: "2024-01-15",
     time: "16:00",
     duration: "30min",
@@ -406,7 +479,7 @@ export default function AppointmentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{appointment.service.name}</TableCell>
-                    <TableCell>{appointment.employee}</TableCell>
+                    <TableCell>{appointment.employee.name}</TableCell>
                     <TableCell>
                       <div>
                         <p>{new Date(appointment.date).toLocaleDateString("fr-FR")}</p>
@@ -482,6 +555,7 @@ export default function AppointmentsPage() {
               mode={selectedAppointment ? "edit" : "add"}
               services={services}
               users={users}
+              employees={employees}
             />
             <div>
 
