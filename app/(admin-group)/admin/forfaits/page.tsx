@@ -148,7 +148,7 @@ export default function ForfaitPage() {
                       setOpenDialog(true)
                     }}
                   >
-                    <Edit className="w-4 h-4" />
+                <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
                   </Button>
                   <Button
                     variant="ghost"

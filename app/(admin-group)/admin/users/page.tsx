@@ -317,7 +317,7 @@ export default function UsersPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)}>
-                          <Edit className="w-4 h-4" />
+                        <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
                         </Button>
                         <Button
                           variant="ghost"
