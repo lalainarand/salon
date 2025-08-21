@@ -1,21 +1,80 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import api, { getCsrfCookie } from "@/lib/api";
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Menu, X, ChevronDown } from "lucide-react"
+import Cookies from "js-cookie"
 import AppointmentModal from "./appointment-modal"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  useEffect(() => {
+    const token = Cookies.get("token") || localStorage.getItem("token");
+    if (token) setIsLoggedIn(true);
+
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUserName(parsedUser.name);
+      } catch {
+        setUserName(null);
+      }
+    }
+  }, []);
+
+
+  const handleLogout = async () => {
+    try {
+      // Récupérer le token côté client
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.warn("Aucun token trouvé côté client");
+        return;
+      }
+
+      // Initialiser le cookie CSRF (Sanctum)
+      await getCsrfCookie();
+
+      // Appel à l'API logout avec le token dans l'en-tête Authorization
+      await api.post(
+        "/api/logout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Supprimer le token et l'utilisateur côté client
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      Cookies.remove("token"); // si tu l'as mis dans les cookies
+
+      // Mettre à jour l'état dans React
+      setIsLoggedIn(false);
+      setIsDropdownOpen(false);
+
+      // Redirection vers l'accueil
+      window.location.href = "/";
+    } catch (error: any) {
+      console.error("Erreur lors de la déconnexion :", error.response?.data || error.message);
+    }
+  };
 
   const navigation = [
     { name: "Accueil", href: "/" },
     { name: "Services", href: "/services" },
     { name: "À propos", href: "/about" },
     { name: "Contact", href: "/contact" },
-    { name: "Connexion", href: "/auth" },
   ]
 
   return (
@@ -43,6 +102,39 @@ export default function Header() {
             </nav>
 
             <div className="hidden md:flex items-center space-x-4">
+              {isLoggedIn ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center space-x-2 bg-sage hover:bg-sage/90 text-white px-4 py-2 rounded-full transition-all duration-200"
+                  >
+                    <span className="w-6 h-6 bg-white text-sage font-bold flex items-center justify-center rounded-full">
+                      {userName?.charAt(0).toUpperCase()}
+                    </span>
+                    <span>{userName}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-2 text-charcoal hover:bg-beige-100 rounded-md"
+                      >
+                        Déconnexion
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/auth"
+                  className="bg-sage hover:bg-sage/90 text-white px-6 py-2 rounded-full transition-all duration-200"
+                >
+                  Connexion
+                </Link>
+              )}
+
               <Button
                 onClick={() => setIsAppointmentModalOpen(true)}
                 className="bg-sage hover:bg-sage/90 text-white px-6 py-2 rounded-full transition-all duration-200"
@@ -73,17 +165,33 @@ export default function Header() {
                     {item.name}
                   </Link>
                 ))}
-                <div className="px-3 py-2">
-                  <Button
-                    onClick={() => {
-                      setIsAppointmentModalOpen(true)
-                      setIsMenuOpen(false)
-                    }}
-                    className="w-full bg-sage hover:bg-sage/90 text-white rounded-full"
+
+                {isLoggedIn ? (
+                  <button
+                    onClick={handleLogout}
+                    className="w-full bg-sage hover:bg-sage/90 text-white rounded-full px-6 py-2 transition-all duration-200"
                   >
-                    Prendre rendez-vous
-                  </Button>
-                </div>
+                    Déconnexion
+                  </button>
+                ) : (
+                  <Link
+                    href="/auth"
+                    className="block w-full bg-sage hover:bg-sage/90 text-white rounded-full px-6 py-2 transition-all duration-200"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Connexion
+                  </Link>
+                )}
+
+                <Button
+                  onClick={() => {
+                    setIsAppointmentModalOpen(true)
+                    setIsMenuOpen(false)
+                  }}
+                  className="w-full bg-sage hover:bg-sage/90 text-white rounded-full px-6 py-2 transition-all duration-200"
+                >
+                  Prendre rendez-vous
+                </Button>
               </div>
             </div>
           )}

@@ -2,16 +2,22 @@
 
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Eye, EyeOff, User, Mail, Lock } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
+
+
 
 export default function AuthPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const { showSuccess, hideNotification, notification } = useSuccessNotification();
 
   const { login, register, loading, error } = useAuth()
 
@@ -20,7 +26,12 @@ export default function AuthPage() {
     const form = e.currentTarget
     const email = (form.email as HTMLInputElement).value
     const password = (form.password as HTMLInputElement).value
-    await login({ email, password })
+    await login({ email, password },
+      (data) => {
+        showSuccess("Connexion réussie !");
+        router.push("/services");
+      }
+    )
   }
 
   async function handleRegister(e: React.FormEvent<HTMLFormElement>) {
@@ -31,7 +42,12 @@ export default function AuthPage() {
     const password = e.currentTarget.registerPassword.value
     const password_confirmation = e.currentTarget.confirmPassword.value
 
-    await register({ name, email, phone, password, password_confirmation })
+    await register({ name, email, phone, password, password_confirmation },
+      (data) => {
+        showSuccess("Inscription réussie !");
+        router.push("/services");
+      }
+    );
   }
 
 
@@ -205,6 +221,13 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
+      {/* Notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={6000}
+      />
     </div>
   )
 }
