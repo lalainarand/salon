@@ -1,25 +1,25 @@
 "use client"
 
+import { Service } from "@/app/(client)/Types/service";
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Cookies from "js-cookie";
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import api, { getCsrfCookie } from "@/lib/api";
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CalendarDays, Clock, CreditCard, User } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface AppointmentModalProps {
-  isOpen: boolean
-  onClose: () => void
-  initialService?: {
-    id: number
-    name: string
-    price: number
-    duration: string
-  } | null
-  initialStep?: number
+  isOpen: boolean;
+  onClose: () => void;
+  initialService?: Service | null | undefined;
+  initialStep?: number;
+  services: any[];
 }
 
 interface ClientInfo {
@@ -27,48 +27,66 @@ interface ClientInfo {
   lastName: string
   email: string
   phone: string
-  note :string
+  note: string
 }
 
+// ✅ COMPOSANT WRAPPER (sans hooks Stripe)
 export default function AppointmentModal({
   isOpen,
   onClose,
   initialService,
   initialStep,
-}: AppointmentModalProps) {
+  services = [],
+}: AppointmentModalProps & { initialService?: Service | null }) {
+
+  // Pas de hooks Stripe ici !
+
+  if (!isOpen) return null;
+
+  return (
+    <AppointmentModalContent
+      onClose={onClose}
+      initialService={initialService}
+      initialStep={initialStep}
+      services={services}
+    />
+  );
+}
+
+// ✅ COMPOSANT AVEC HOOKS STRIPE
+function AppointmentModalContent({
+  onClose,
+  initialService,
+  initialStep,
+  services = [],
+}: {
+  onClose: () => void;
+  initialService?: Service | null;
+  initialStep?: number;
+  services: any[];
+}) {
+  // ✅ Maintenant les hooks sont dans le contexte Elements !
+  const stripe = useStripe();
+  const elements = useElements();
+
   const [step, setStep] = useState(1)
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
+  const [user, setUser] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isshowbtn, setIsisshowbtn] = useState(true)
-  const [selectedService, setSelectedService] = useState<{
-    id: number
-    name: string
-    price: number
-    duration: string
-  } | null>(initialService ?? null)
-
-   const [clientInfo, setClientInfo] = useState<ClientInfo>({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      note : ""
-    })
-
-
-
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [selectedService, setSelectedService] = useState<Service | null>(
+    initialService ?? null
+  )
 
-  const services = [
-    { id: 1, name: "Coupe femme", price: 45, duration: "1h" },
-    { id: 2, name: "Coupe + Brushing", price: 80, duration: "2h" },
-    { id: 3, name: "Coloration", price: 60, duration: "1h30" },
-    { id: 4, name: "Mèches", price: 35, duration: "45min" },
-    { id: 5, name: "Soin capillaire", price: 40, duration: "1h" },
-    { id: 6, name: "Soin hydratant", price: 70, duration: "1h" },
-  ];
-
+  const [clientInfo, setClientInfo] = useState<ClientInfo>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    note: "",
+  })
 
   const timeSlots = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
 
@@ -82,7 +100,7 @@ export default function AppointmentModal({
 
   const handleClose = () => {
     setStep(1)
-    setClientInfo({ firstName: "", lastName: "", email: "", phone: "" , note : ""})
+    setClientInfo({ firstName: "", lastName: "", email: "", phone: "", note: "" })
     setSelectedDate(undefined)
     setSelectedTime("")
     setSelectedService(null)
@@ -91,70 +109,181 @@ export default function AppointmentModal({
     onClose()
   }
 
-  const handleConfirmReservation = () => {
-    setIsConfirmed(true)
-    setIsisshowbtn(false)
-    // Ici vous pouvez ajouter la logique pour envoyer les données au serveur
-    console.log("Réservation confirmée:", {
-      service: selectedService,
-      client: clientInfo,
-      date: selectedDate,
-      time: selectedTime,
-      paymentMethod
-    })
-  }
+  const handleConfirmReservation = async () => {
+
+    const token = Cookies.get("token") || localStorage.getItem("token");
+    console.log("Token envoyé:", token);
+    if (!stripe || !elements) {
+      console.log("Stripe pas encore prêt:", { stripe, elements });
+      return;
+    }
+
+    if (paymentMethod === "online") {
+      const cardElement = elements.getElement(CardElement);
+
+      if (!cardElement) {
+        console.error("CardElement non trouvé");
+        return;
+      }
+
+      try {
+        // Crée un PaymentMethod Stripe
+        const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
+          type: "card",
+          card: cardElement,
+          billing_details: {
+            name: `${user.nom}`,
+            email: user.email,
+            phone: user.phone,
+          },
+        });
+
+        if (error) {
+          console.error("Erreur Stripe:", error);
+          alert("Erreur de paiement: " + error.message);
+          setIsConfirmed(false);
+          setIsisshowbtn(true);
+          return;
+        }
+        // await getCsrfCookie();
+        await api.post("/api/appointments/store", {
+          service_id: selectedService?.id,
+          client_id: user?.id,
+          date: selectedDate,
+          time: selectedTime,
+          payment_method: "online",
+          stripe_payment_method_id: stripePaymentMethod.id,
+          note: clientInfo.note,
+        },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+      } catch (err) {
+        console.error("Erreur lors du paiement:", err);
+        alert("Une erreur s'est produite lors du paiement");
+        setIsConfirmed(false);
+        setIsisshowbtn(true);
+        return;
+      }
+
+    } else {
+      try {
+        // Paiement en cash
+        // await getCsrfCookie();
+        await api.post("/api/appointments/store", {
+          service_id: selectedService?.id,
+          client_id: user?.id,
+          date: selectedDate,
+          time: selectedTime,
+          payment_method: "cash",
+          note: clientInfo.note,
+        },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+      } catch (err) {
+        console.error("Erreur lors de la réservation:", err);
+        alert("Erreur lors de la réservation");
+        setIsConfirmed(false);
+        setIsisshowbtn(true);
+        return;
+      }
+    }
+    setIsConfirmed(true);
+    setIsisshowbtn(false);
+
+  };
 
   useEffect(() => {
-    if (isOpen) {
-      setStep(initialStep || 1)
-      setSelectedService(initialService ?? null)
+    if (initialStep) {
+      setStep(initialStep);
     }
-  }, [isOpen, initialStep, initialService])
+    if (initialService) {
+      setSelectedService(initialService);
+    }
 
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
 
+        // Pré-remplir les infos client avec les données utilisateur
+        setClientInfo(prev => ({
+          ...prev,
+          firstName: parsedUser.name || "",
+          email: parsedUser.email || "",
+          phone: parsedUser.phone || "",
+        }));
+      } catch (error) {
+        console.error("Erreur parsing user:", error);
+        setUser(null);
+      }
+    }
+  }, [initialStep, initialService]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={true} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-playfair text-charcoal">Prendre rendez-vous</DialogTitle>
+          <DialogTitle className="text-2xl font-playfair text-charcoal">
+            Prendre rendez-vous
+          </DialogTitle>
         </DialogHeader>
+
+        {/* Debug Stripe (à supprimer en production) */}
+        {/* <div className="mb-4 p-2 bg-blue-50 rounded text-xs">
+          <p>🔧 Debug: Stripe: {stripe ? "✅" : "❌"} | Elements: {elements ? "✅" : "❌"}</p>
+        </div> */}
 
         <div className="space-y-6">
           {/* Progress indicator */}
           {isshowbtn && (
-          <div className="flex items-center justify-between mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${i <= step ? "bg-sage text-white" : "bg-gray-200 text-gray-500"
-                    }`}
-                >
-                  {i}
+            <div className="flex items-center justify-between mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${i <= step ? "bg-sage text-white" : "bg-gray-200 text-gray-500"
+                      }`}
+                  >
+                    {i}
+                  </div>
+                  {i < 4 && <div className={`w-16 h-1 mx-2 ${i < step ? "bg-sage" : "bg-gray-200"}`} />}
                 </div>
-                {i < 4 && <div className={`w-16 h-1 mx-2 ${i < step ? "bg-sage" : "bg-gray-200"}`} />}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           )}
 
           {/* Step 1: Service Selection */}
           {step === 1 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">Choisissez votre service</h3>
+              <h3 className="text-lg font-semibold text-charcoal mb-4">
+                Choisissez votre service
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {services.map((service) => (
                   <Card
-                    key={service.name}
-                    className={`${selectedService?.id === service.id ? "ring-2 ring-sage bg-sage/5" : "hover:shadow-md"}`}
-
+                    key={service.id}
+                    className={`cursor-pointer transition-all ${selectedService?.id === service.id
+                      ? "ring-2 ring-sage bg-sage/5"
+                      : "hover:shadow-md"
+                      }`}
                     onClick={() => setSelectedService(service)}
-
                   >
                     <CardContent className="p-4">
-                      <h4 className="font-semibold text-charcoal">{service.name}</h4>
-                      <p className="text-sm text-gray-600">{service.duration}</p>
-                      <p className="text-lg font-bold text-sage">{service.price}€</p>
+                      <h4 className="font-semibold text-charcoal">{service.nom}</h4>
+                      <p className="text-sm text-gray-600">
+                        {service.duree_minutes} min
+                      </p>
+                      <p className="text-lg font-bold text-sage">{service.prix} Ar</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {service.categorie?.nom}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -165,7 +294,9 @@ export default function AppointmentModal({
           {/* Step 2: Date & Time Selection */}
           {step === 2 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">Choisissez la date et l'heure</h3>
+              <h3 className="text-lg font-semibold text-charcoal mb-4">
+                Choisissez la date et l'heure
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label className="text-sm font-medium text-charcoal mb-2 block">Date</Label>
@@ -243,9 +374,12 @@ export default function AppointmentModal({
               </div>
               <div>
                 <Label htmlFor="notes">Notes (optionnel)</Label>
-                <Textarea id="notes"
-                onChange={(e) => setClientInfo({ ...clientInfo, note: e.target.value })}
-                 placeholder="Informations supplémentaires..." />
+                <Textarea
+                  id="notes"
+                  value={clientInfo.note}
+                  onChange={(e) => setClientInfo({ ...clientInfo, note: e.target.value })}
+                  placeholder="Informations supplémentaires..."
+                />
               </div>
             </div>
           )}
@@ -253,7 +387,9 @@ export default function AppointmentModal({
           {/* Step 4: Payment */}
           {step === 4 && !isConfirmed && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">Récapitulatif et paiement</h3>
+              <h3 className="text-lg font-semibold text-charcoal mb-4">
+                Récapitulatif et paiement
+              </h3>
 
               {/* Summary */}
               <Card>
@@ -269,7 +405,7 @@ export default function AppointmentModal({
 
                   <div className="flex items-center space-x-3">
                     <User className="h-5 w-5 text-sage" />
-                    <span>{selectedService?.name}</span>
+                    <span>{selectedService?.nom}</span>
                   </div>
 
                   <div className="flex items-center space-x-3">
@@ -285,7 +421,7 @@ export default function AppointmentModal({
                   <div className="border-t pt-3 mt-3">
                     <div className="flex justify-between items-center text-lg font-semibold">
                       <span>Total:</span>
-                      <span className="text-sage">{selectedService?.price}€</span>
+                      <span className="text-sage">{selectedService?.prix} Ar</span>
                     </div>
                   </div>
                 </CardContent>
@@ -301,6 +437,7 @@ export default function AppointmentModal({
                       id="online"
                       name="payment"
                       value="online"
+                      checked={paymentMethod === "online"}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                     />
                     <Label htmlFor="online">Payer en ligne maintenant</Label>
@@ -311,6 +448,7 @@ export default function AppointmentModal({
                       id="salon"
                       name="payment"
                       value="salon"
+                      checked={paymentMethod === "salon"}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                     />
                     <Label htmlFor="salon">Payer sur place</Label>
@@ -327,31 +465,40 @@ export default function AppointmentModal({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="cardNumber">Numéro de carte</Label>
-                      <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="expiry">Date d'expiration</Label>
-                        <Input id="expiry" placeholder="MM/AA" />
+                    {!stripe || !elements ? (
+                      <div className="p-3 border rounded-md bg-yellow-50">
+                        <p className="text-yellow-800">⏳ Chargement de Stripe...</p>
                       </div>
-                      <div>
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input id="cvv" placeholder="123" />
+                    ) : (
+                      <div className="p-3 border rounded-md">
+                        <CardElement
+                          options={{
+                            style: {
+                              base: {
+                                fontSize: "16px",
+                                color: "#32325d",
+                                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                                fontSmoothing: "antialiased",
+                                "::placeholder": {
+                                  color: "#aab7c4"
+                                }
+                              },
+                              invalid: {
+                                color: "#e53e3e",
+                                iconColor: "#e53e3e"
+                              },
+                            },
+                          }}
+                        />
                       </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="cardName">Nom sur la carte</Label>
-                      <Input id="cardName" placeholder="Nom complet" />
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
             </div>
           )}
 
-           {/* ÉTAPE 3 - Confirmation */}
+          {/* Confirmation Step */}
           {step === 4 && isConfirmed && (
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -362,7 +509,7 @@ export default function AppointmentModal({
               <h2 className="text-2xl font-semibold text-green-800">Réservation confirmée !</h2>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-green-800">
-                  Votre rendez-vous pour <strong>{selectedService?.name}</strong>
+                  Votre rendez-vous pour <strong>{selectedService?.nom}</strong>
                 </p>
                 <p className="text-green-700">
                   le {selectedDate?.toLocaleDateString("fr-FR")} à {selectedTime}
@@ -382,32 +529,34 @@ export default function AppointmentModal({
 
           {/* Navigation buttons */}
           {isshowbtn && (
-          <div className="flex justify-between pt-6">
-            <Button variant="outline" onClick={handlePrevious} disabled={step === 1}>
-              Précédent
-            </Button>
-
-            {step < 4 ? (
-              <Button
-                onClick={handleNext}
-                disabled={(step === 1 && !selectedService) || (step === 2 && (!selectedDate || !selectedTime))}
-                className="bg-sage hover:bg-sage/90"
-              >
-                Suivant
+            <div className="flex justify-between pt-6">
+              <Button variant="outline" onClick={handlePrevious} disabled={step === 1}>
+                Précédent
               </Button>
-            ) : (
-              <Button
-                onClick={handleConfirmReservation}
-                disabled={!paymentMethod}
-                className="bg-sage hover:bg-sage/90"
-              >
-                {paymentMethod === "online" ? "Payer et confirmer" : "Confirmer le rendez-vous"}
-              </Button>
-            )}
-          </div>
-          )
-          }
 
+              {step < 4 ? (
+                <Button
+                  onClick={handleNext}
+                  disabled={
+                    (step === 1 && !selectedService) ||
+                    (step === 2 && (!selectedDate || !selectedTime)) ||
+                    (step === 3 && (!clientInfo.firstName || !clientInfo.lastName || !clientInfo.email))
+                  }
+                  className="bg-sage hover:bg-sage/90"
+                >
+                  Suivant
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleConfirmReservation}
+                  disabled={!paymentMethod || (paymentMethod === "online" && (!stripe || !elements))}
+                  className="bg-sage hover:bg-sage/90"
+                >
+                  {paymentMethod === "online" ? "Payer et confirmer" : "Confirmer le rendez-vous"}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

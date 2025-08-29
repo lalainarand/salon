@@ -3,186 +3,49 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Star } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import api, { getCsrfCookie } from "@/lib/api";
+import Cookies from "js-cookie"
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { stripePromise } from "@/lib/stripe";
 import Image from "next/image"
+import { Service } from "@/app/(client)/Types/service";
 import AppointmentModal from "@/components/appointment-modal"
 import PackageModal from "@/components/PackageModal"
-
-const serviceCategories = [
-  {
-    title: "Coiffure & Styling",
-    description: "Des coupes tendance aux colorations sophistiquées",
-    services: [
-      {
-        id: 1,
-        name: "Coupe femme",
-        price: "45€",
-        duration: "1h",
-        description: "Coupe personnalisée selon votre style",
-        image: "coiffure1.jpg"
-      },
-      {
-        id: 2,
-        name: "Coupe + Brushing",
-        price: "55€",
-        duration: "1h30",
-        description: "Coupe et mise en forme professionnelle",
-        image: "coiffure6.jpg"
-      },
-      {
-        id: 3,
-        name: "Coloration",
-        price: "80€",
-        duration: "2h",
-        description: "Coloration complète avec produits haut de gamme",
-        image: "coiffure2.jpg"
-      },
-      {
-        id: 4,
-        name: "Mèches",
-        price: "90€",
-        duration: "2h30",
-        description: "Mèches ou balayage pour illuminer vos cheveux",
-        image: "coiffure3.jpg"
-      },
-      {
-        id: 5,
-        name: "Soin capillaire",
-        price: "35€",
-        duration: "45min",
-        description: "Soin réparateur et nourrissant",
-        image: "coiffure8.jpg"
-      },
-    ],
-  },
-  {
-    title: "Soins du visage",
-    description: "Traitements personnalisés pour une peau éclatante",
-    services: [
-      {
-        id: 6,
-        name: "Soin hydratant",
-        price: "60€",
-        duration: "1h",
-        description: "Hydratation profonde pour tous types de peau",
-        image: "coiffure4.jpg"
-      },
-      {
-        id: 7,
-        name: "Soin anti-âge",
-        price: "85€",
-        duration: "1h30",
-        description: "Traitement raffermissant et lissant",
-        image: "coiffure7.jpg"
-      },
-      {
-        id: 8,
-        name: "Nettoyage de peau",
-        price: "70€",
-        duration: "1h15",
-        description: "Purification et extraction des impuretés",
-        image: "coiffure5.jpg"
-      },
-      {
-        id: 9,
-        name: "Soin éclat",
-        price: "65€",
-        duration: "1h",
-        description: "Illumine et unifie le teint",
-        image: "coiffure1.jpg"
-      },
-    ],
-  },
-  {
-    title: "Manucure & Pédicure",
-    description: "Soins des ongles et beauté des mains et pieds",
-    services: [
-      {
-        id: 10,
-        name: "Manucure classique",
-        price: "35€",
-        duration: "45min",
-        description: "Soin complet des ongles et des mains",
-        image: "coiffure6.jpg"
-      },
-      {
-        id: 11,
-        name: "Manucure semi-permanent",
-        price: "45€",
-        duration: "1h",
-        description: "Vernis longue tenue jusqu'à 3 semaines",
-        image: "coiffure7.jpg"
-      },
-      {
-        id: 12,
-        name: "Pédicure",
-        price: "40€",
-        duration: "1h",
-        description: "Soin complet des pieds et des ongles",
-        image: "coiffure4.jpg"
-      },
-    ],
-  },
-  {
-    title: "Bien-être & Relaxation",
-    description: "Moments de détente et de relaxation",
-    services: [
-      {
-        id: 13,
-        name: "Massage relaxant",
-        price: "70€",
-        duration: "1h",
-        description: "Massage corps complet pour se détendre",
-        image: "coiffure8.jpg"
-      },
-      {
-        id: 14,
-        name: "Massage du visage",
-        price: "45€",
-        duration: "30min",
-        description: "Massage anti-stress du visage et du crâne",
-        image: "coiffure5.jpg"
-      },
-      {
-        id: 15,
-        name: "Épilation sourcils",
-        price: "25€",
-        duration: "30min",
-        description: "Mise en forme parfaite des sourcils",
-        image: "coiffure2.jpg"
-      },
-      {
-        id: 16,
-        name: "Teinture sourcils/cils",
-        price: "30€",
-        duration: "45min",
-        description: "Intensification du regard",
-        image: "coiffure3.jpg"
-      },
-    ],
-  },
-];
-
-type ServiceType = {
-  id: number
-  name: string
-  price: number
-  duration: string
-}
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
 
 
 export default function ServicesPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
-  const [preSelectedService, setPreSelectedService] = useState<ServiceType | null>(null)
+  const [preSelectedService, setPreSelectedService] = useState<Service | null>(null)
+  const { notification, showSuccess, hideNotification } = useSuccessNotification();
   const [initialStep, setInitialStep] = useState<number>(1)
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null)
+  const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const handleOpenModal = (pkg: any) => {
     setSelectedPackage(pkg)
     setIsModalOpen(true)
   }
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        await getCsrfCookie();
+        const token = Cookies.get("token") || localStorage.getItem("token");
+        if (token) setIsLoggedIn(true);
+        const { data } = await api.get("/api/categories");
+        setCategories(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des catégories :", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
 
   return (
@@ -203,55 +66,54 @@ export default function ServicesPage() {
       {/* Services Sections */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {serviceCategories.map((category, categoryIndex) => (
+          {categories.map((category, categoryIndex) => (
             <div key={categoryIndex} className="mb-20">
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-playfair font-bold text-charcoal mb-4">{category.title}</h2>
+                <h2 className="text-3xl font-playfair font-bold text-charcoal mb-4">{category.nom}</h2>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">{category.description}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {category.services.map((service, serviceIndex) => (
+                {category.services.map((service: Service, serviceIndex: number) => (
                   <Card key={serviceIndex} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <Image
-                      src={service.image}
-                      alt={service.name}
+                      src={`coiffure${Math.floor(Math.random() * 8) + 1}.jpg`} // image aléatoire entre coiffure1.jpg et coiffure8.jpg
+                      alt={service.nom}
                       width={400}
                       height={250}
                       className="w-full h-52 object-cover"
                     />
                     <CardHeader>
                       <CardTitle className="flex justify-between items-start">
-                        <span className="text-lg text-charcoal">{service.name}</span>
-                        <span className="text-xl font-bold text-sage">{service.price}</span>
+                        <span className="text-lg text-charcoal">{service.nom}</span>
+                        <span className="text-xl font-bold text-sage">{service.prix} Ar</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center text-gray-600">
                         <Clock className="h-4 w-4 mr-2" />
-                        <span className="text-sm">{service.duration}</span>
+                        <span className="text-sm">{service.duree_minutes} min</span>
                       </div>
                       <p className="text-gray-600">{service.description}</p>
                       <Button
                         className="w-full bg-sage hover:bg-sage/90 text-white rounded-full"
                         onClick={() => {
-                          setPreSelectedService({
-                            id: service.id,
-                            name: service.name,
-                            price: Number(service.price),
-                            duration: service.duration,
-                          })
-                          setInitialStep(2)
-                          setIsAppointmentModalOpen(true)
+                          if (!isLoggedIn) {
+                            // Affiche la notification
+                            showSuccess("Vous devez être connecté pour prendre un rendez-vous !");
+                            return;
+                          }
+                          setPreSelectedService(service);
+                          setInitialStep(2);
+                          setIsAppointmentModalOpen(true);
                         }}
                       >
                         Réserver ce service
                       </Button>
-
                     </CardContent>
                   </Card>
-
                 ))}
+
               </div>
             </div>
           ))}
@@ -361,16 +223,18 @@ export default function ServicesPage() {
         </div>
       </section>
       {/* 🧠 Ce composant doit absolument être monté ici aussi */}
-      <AppointmentModal
-        isOpen={isAppointmentModalOpen}
-        onClose={() => {
-          setPreSelectedService(null) // Reset à la fermeture
-          setInitialStep(1)
-          setIsAppointmentModalOpen(false)
-        }}
-        initialService={preSelectedService}
-        initialStep={initialStep}
-      />
+      <Elements stripe={stripePromise}>
+        <AppointmentModal
+          isOpen={isAppointmentModalOpen}
+          onClose={() => {
+            setPreSelectedService(null) // Reset à la fermeture
+            setInitialStep(1)
+            setIsAppointmentModalOpen(false)
+          }}
+          initialService={preSelectedService}
+          initialStep={initialStep}
+        />
+      </Elements>
 
       <PackageModal
         isOpen={isModalOpen}
@@ -378,6 +242,12 @@ export default function ServicesPage() {
         initialPackage={selectedPackage}
       />
 
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={6000}
+      />
 
     </div>
   )
