@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import Cookies from "js-cookie";
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
-import api, { getCsrfCookie } from "@/lib/api";
+import api from "@/lib/api";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CalendarDays, Clock, CreditCard, User } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -111,8 +111,6 @@ function AppointmentModalContent({
 
   const handleConfirmReservation = async () => {
 
-    const token = Cookies.get("token") || localStorage.getItem("token");
-    console.log("Token envoyé:", token);
     if (!stripe || !elements) {
       console.log("Stripe pas encore prêt:", { stripe, elements });
       return;
@@ -146,7 +144,7 @@ function AppointmentModalContent({
           return;
         }
         // await getCsrfCookie();
-        await api.post("/api/appointments/store", {
+        await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
           date: selectedDate,
@@ -154,12 +152,7 @@ function AppointmentModalContent({
           payment_method: "online",
           stripe_payment_method_id: stripePaymentMethod.id,
           note: clientInfo.note,
-        },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+        });
 
       } catch (err) {
         console.error("Erreur lors du paiement:", err);
@@ -172,20 +165,14 @@ function AppointmentModalContent({
     } else {
       try {
         // Paiement en cash
-        // await getCsrfCookie();
-        await api.post("/api/appointments/store", {
+        await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
           date: selectedDate,
           time: selectedTime,
           payment_method: "cash",
           note: clientInfo.note,
-        },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+        });
       } catch (err) {
         console.error("Erreur lors de la réservation:", err);
         alert("Erreur lors de la réservation");
@@ -199,6 +186,16 @@ function AppointmentModalContent({
 
   };
 
+
+  // const handleConfirmReservation = async () => {
+  //   await api.post("/api/appointments", {
+  //     client_id: 1,
+  //     service_id: 2,
+  //     date: "2025-09-12",
+  //     time: "11:30"
+  //   });
+
+  // }
   useEffect(() => {
     if (initialStep) {
       setStep(initialStep);

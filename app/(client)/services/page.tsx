@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Star } from "lucide-react"
 import { useState, useEffect } from "react"
-import api, { getCsrfCookie } from "@/lib/api";
+import api from "@/lib/api";
 import Cookies from "js-cookie"
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -34,7 +34,7 @@ export default function ServicesPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        await getCsrfCookie();
+  
         const token = Cookies.get("token") || localStorage.getItem("token");
         if (token) setIsLoggedIn(true);
         const { data } = await api.get("/api/categories");

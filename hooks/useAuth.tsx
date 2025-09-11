@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import api, { getCsrfCookie } from "@/lib/api";
-import Cookies from "js-cookie";
+import api from "@/lib/api";
 
 type RegisterPayload = {
   name: string;
@@ -26,77 +25,50 @@ export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const saveToken = (token: string) => {
-    // Stockage dans localStorage
-    localStorage.setItem("token", token);
+  const saveToken = (token: string) => localStorage.setItem("token", token);
 
-
-    // Stockage dans un cookie sécurisé accessible côté serveur
-    Cookies.set("token", token, {
-      expires: 7, // 7 jours
-      secure: true, // seulement sur HTTPS
-      sameSite: "Strict",
-      path: "/", // cookie accessible sur tout le site
-    });
-  };
-
-  async function register(
-    payload: RegisterPayload,
-    onSuccess?: (data: AuthResponse) => void
-  ): Promise<AuthResponse | undefined> {
+  const register = async (payload: RegisterPayload, onSuccess?: (data: AuthResponse) => void) => {
     setLoading(true);
     setError(null);
-
     try {
-      await getCsrfCookie();
       const { data } = await api.post("/api/register", payload);
-
       if (data.token) {
-        localStorage.setItem("user", JSON.stringify(data.user))
+        localStorage.setItem("user", JSON.stringify(data.user));
         saveToken(data.token);
-        if (onSuccess) onSuccess(data);
+        onSuccess?.(data);
       }
-
       return data;
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Erreur lors de l'inscription");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+    } finally { setLoading(false); }
+  };
 
-  async function login(
-    payload: LoginPayload,
-    onSuccess?: (data: AuthResponse) => void
-  ): Promise<AuthResponse | undefined> {
+  const login = async (payload: LoginPayload, onSuccess?: (data: AuthResponse) => void) => {
     setLoading(true);
     setError(null);
-
     try {
-      await getCsrfCookie();
       const { data } = await api.post("/api/login", payload);
-
       if (data.token) {
-        console.log('user',data.user)
-        console.log('token',data.token);
-        localStorage.setItem("user", JSON.stringify(data.user))
+        localStorage.setItem("user", JSON.stringify(data.user));
         saveToken(data.token);
-        if (onSuccess) onSuccess(data);
+        onSuccess?.(data);
       }
-
       return data;
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Erreur lors de la connexion");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+    } finally { setLoading(false); }
+  };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    Cookies.remove("token", { path: "/" });
+  const logout = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post("/api/logout");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Erreur lors de la déconnexion");
+    } finally { setLoading(false); }
   };
 
   return { register, login, logout, loading, error };

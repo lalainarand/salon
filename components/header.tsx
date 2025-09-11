@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import api, { getCsrfCookie } from "@/lib/api";
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button"
 import { Menu, X, ChevronDown } from "lucide-react"
 import Cookies from "js-cookie"
+import { useAuth } from "@/hooks/useAuth"
 import AppointmentModal from "./appointment-modal"
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -28,6 +29,7 @@ export default function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const { notification, showSuccess, hideNotification } = useSuccessNotification();
   const [services, setServices] = useState<Service[]>([]);
+  const {logout} = useAuth()
 
   useEffect(() => {
     // Vérifie si l'utilisateur est connecté
@@ -47,7 +49,7 @@ export default function Header() {
     // Récupère les services depuis l'API
     const fetchServices = async () => {
       try {
-        await getCsrfCookie();
+      ;
         const token = Cookies.get("token") || localStorage.getItem("token");
 
         const { data } = await api.get("/api/services");
@@ -66,32 +68,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      // Récupérer le token côté client
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.warn("Aucun token trouvé côté client");
-        return;
-      }
-
-      // Initialiser le cookie CSRF (Sanctum)
-      await getCsrfCookie();
-
-      // Appel à l'API logout avec le token dans l'en-tête Authorization
-      await api.post(
-        "/api/logout",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // Supprimer le token et l'utilisateur côté client
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      Cookies.remove("token"); // si tu l'as mis dans les cookies
-
+     logout();
       // Mettre à jour l'état dans React
       setIsLoggedIn(false);
       setIsDropdownOpen(false);

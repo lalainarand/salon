@@ -1,9 +1,7 @@
-
 import axios from "axios";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -11,21 +9,13 @@ const api = axios.create({
   },
 });
 
-// Intercepteur pour automatiquement ajouter le token CSRF
+// Intercepteur pour ajouter le token automatiquement
 api.interceptors.request.use((config) => {
-  const token = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("XSRF-TOKEN="))
-    ?.split("=")[1];
-
+  const token = localStorage.getItem("token");
   if (token) {
-    config.headers["X-XSRF-TOKEN"] = decodeURIComponent(token);
+    config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
-
-// Initialiser le cookie CSRF (appel à faire une fois avant un POST protégé)
-export const getCsrfCookie = () => api.get("/sanctum/csrf-cookie");
 
 export default api;
