@@ -53,6 +53,11 @@ export default function AppointmentModal({
   );
 }
 
+function formatDateForApi(date?: Date | string): string | null {
+  if (!date) return null; // ou tu peux throw une erreur selon ton cas
+  return new Date(date).toISOString().split("T")[0];
+}
+
 // ✅ COMPOSANT AVEC HOOKS STRIPE
 function AppointmentModalContent({
   onClose,
@@ -147,11 +152,14 @@ function AppointmentModalContent({
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
-          date: selectedDate,
-          time: selectedTime,
-          payment_method: "online",
+          date: formatDateForApi(selectedDate),
+          heure: selectedTime,
+          mode_paiement: "paiement_en_ligne",
           stripe_payment_method_id: stripePaymentMethod.id,
           note: clientInfo.note,
+          status: 'confirmé',
+          paye : 1,
+          price : selectedService?.prix
         });
 
       } catch (err) {
@@ -168,10 +176,12 @@ function AppointmentModalContent({
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
-          date: selectedDate,
-          time: selectedTime,
-          payment_method: "cash",
+          date: formatDateForApi(selectedDate),
+          heure: selectedTime,
+          mode_paiement: "especes",
           note: clientInfo.note,
+          status: 'confirmé',
+          paye: 0
         });
       } catch (err) {
         console.error("Erreur lors de la réservation:", err);
@@ -186,16 +196,6 @@ function AppointmentModalContent({
 
   };
 
-
-  // const handleConfirmReservation = async () => {
-  //   await api.post("/api/appointments", {
-  //     client_id: 1,
-  //     service_id: 2,
-  //     date: "2025-09-12",
-  //     time: "11:30"
-  //   });
-
-  // }
   useEffect(() => {
     if (initialStep) {
       setStep(initialStep);
