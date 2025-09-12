@@ -13,16 +13,78 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MapPin, Phone, Mail, Clock, Instagram, Facebook } from "lucide-react"
 import AppointmentModal from "@/components/appointment-modal"
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
+
+
 
 export default function ContactPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [services, setServices] = useState<Service[]>([]);
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
-  const phoneNumber = "+33123456789" 
+  // State du formulaire
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: ""
+  })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const phoneNumber = "+33123456789"
 
   const handleCall = () => {
     window.location.href = `tel:${phoneNumber}`
   }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData(prev => ({ ...prev, [id]: value }))
+  }
+
+  const isFormValid = () => {
+    return formData.firstName && formData.lastName && formData.email && formData.subject && formData.message
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isFormValid()) return
+
+    try {
+      setIsSubmitting(true)
+      const response = await api.post("/api/contact", formData)
+      showSuccess(`Votre message a été envoyé avec succès`)
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        subject: "",
+        message: ""
+      })
+    } catch (err) {
+      console.error("Erreur lors de l'envoi du message:", err)
+      alert("Erreur lors de l'envoi du message. Veuillez réessayer.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const { data } = await api.get("/api/services");
+        console.log("Services from API:", data);
+        setServices(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des services:", err);
+      }
+    };
+    fetchServices();
+  }, []);
 
   const contactInfo = [
     {
@@ -51,25 +113,6 @@ export default function ContactPage() {
     { icon: Instagram, name: "Instagram", handle: "@beautysalon_paris" },
     { icon: Facebook, name: "Facebook", handle: "Beauty Salon Paris" },
   ]
-
-  useEffect(() => {
-
-    const fetchServices = async () => {
-      try {
-        ;
-        const token = localStorage.getItem("token");
-
-        const { data } = await api.get("/api/services");
-
-        console.log("Services from API:", data);
-        setServices(data);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des services:", err);
-      }
-    };
-
-    fetchServices();
-  }, []);
 
   return (
     <div className="min-h-screen">
@@ -121,40 +164,81 @@ export default function ContactPage() {
                 <CardTitle className="text-2xl font-playfair text-charcoal">Envoyez-nous un message</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="firstName">Prénom *</Label>
-                      <Input id="firstName" placeholder="Votre prénom" required />
+                      <Input
+                        id="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="Votre prénom"
+                        required
+                      />
                     </div>
                     <div>
                       <Label htmlFor="lastName">Nom *</Label>
-                      <Input id="lastName" placeholder="Votre nom" required />
+                      <Input
+                        id="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Votre nom"
+                        required
+                      />
                     </div>
                   </div>
 
                   <div>
                     <Label htmlFor="email">Email *</Label>
-                    <Input id="email" type="email" placeholder="votre@email.com" required />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="votre@email.com"
+                      required
+                    />
                   </div>
 
                   <div>
                     <Label htmlFor="phone">Téléphone</Label>
-                    <Input id="phone" placeholder="01 23 45 67 89" />
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="01 23 45 67 89"
+                    />
                   </div>
 
                   <div>
                     <Label htmlFor="subject">Sujet *</Label>
-                    <Input id="subject" placeholder="Objet de votre message" required />
+                    <Input
+                      id="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="Objet de votre message"
+                      required
+                    />
                   </div>
 
                   <div>
                     <Label htmlFor="message">Message *</Label>
-                    <Textarea id="message" placeholder="Décrivez votre demande..." rows={6} required />
+                    <Textarea
+                      id="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      placeholder="Décrivez votre demande..."
+                      rows={6}
+                      required
+                    />
                   </div>
 
-                  <Button type="submit" className="w-full bg-sage hover:bg-sage/90 text-white py-3 rounded-full">
-                    Envoyer le message
+                  <Button
+                    type="submit"
+                    disabled={!isFormValid() || isSubmitting}
+                    className="w-full bg-sage hover:bg-sage/90 text-white py-3 rounded-full"
+                  >
+                    {isSubmitting ? "Envoi..." : "Envoyer le message"}
                   </Button>
                 </form>
               </CardContent>
@@ -172,7 +256,7 @@ export default function ContactPage() {
                   </div>
                   <div className="space-y-4">
                     <p className="text-gray-600">
-                      Situé au cœur de Paris, notre salon est facilement accessible en métro, bus ou en voiture. Un
+                      Situé au cœur d'antananarive , notre salon est facilement accessible en bus, taxi moto ou en voiture. Un
                       parking est disponible à proximité.
                     </p>
                     <div className="space-y-2">
@@ -217,8 +301,6 @@ export default function ContactPage() {
         </div>
       </section>
 
-
-
       {/* CTA Section */}
       <section className="py-20 bg-sage text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
@@ -244,7 +326,8 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
-      {/* 🧠 Ce composant doit absolument être monté ici aussi */}
+
+      {/* Appointment Modal */}
       {isAppointmentModalOpen && (
         <Elements stripe={stripePromise}>
           <AppointmentModal
@@ -255,6 +338,13 @@ export default function ContactPage() {
         </Elements>
       )}
 
+      {/* Composant de notification */}
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
     </div>
   )
 }

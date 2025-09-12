@@ -5,31 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Star } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import api from "@/lib/api";
-import Cookies from "js-cookie"
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import { stripePromise } from "@/lib/stripe";
+import api from "@/lib/api"
+import { Elements } from "@stripe/react-stripe-js"
+import { stripePromise } from "@/lib/stripe"
 import Image from "next/image"
-import { Service } from "@/app/(client)/Types/service";
+import { Service } from "@/app/(client)/Types/service"
 import AppointmentModal from "@/components/appointment-modal"
 import PackageModal from "@/components/PackageModal"
 import ServiceDescription from "@/components/ServiceDescription"
-import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
-
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 export default function ServicesPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [preSelectedService, setPreSelectedService] = useState<Service | null>(null)
-  const { notification, showSuccess, hideNotification } = useSuccessNotification();
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
   const [initialStep, setInitialStep] = useState<number>(1)
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null)
-  const [categories, setCategories] = useState<any[]>([]);
-  const [forfaits, setForfaits] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([])
+  const [forfaits, setForfaits] = useState<any[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>([])
 
+  // Pagination state pour chaque catégorie
+  const [categoryPages, setCategoryPages] = useState<{ [key: number]: number }>({})
 
   const handleOpenModal = (pkg: any) => {
     setSelectedPackage(pkg)
@@ -39,48 +38,46 @@ export default function ServicesPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-
-        const token = localStorage.getItem("token");
-        if (token) setIsLoggedIn(true);
-        const { data } = await api.get("/api/categories");
-        setCategories(data);
+        const token = localStorage.getItem("token")
+        if (token) setIsLoggedIn(true)
+        const { data } = await api.get("/api/categories")
+        setCategories(data)
+        // initialisation des pages pour chaque catégorie
+        const initialPages: { [key: number]: number } = {}
+        data.forEach((cat: any) => { initialPages[cat.id] = 1 })
+        setCategoryPages(initialPages)
       } catch (err) {
-        console.error("Erreur lors de la récupération des catégories :", err);
+        console.error("Erreur lors de la récupération des catégories :", err)
       }
-    };
+    }
 
     const fetchForfaits = async () => {
       try {
-
-        const token = localStorage.getItem("token");
-        if (token) setIsLoggedIn(true);
-        const { data } = await api.get("/api/forfaits");
-        console.log('liste des forfaits', data);
-        setForfaits(data);
+        const token = localStorage.getItem("token")
+        if (token) setIsLoggedIn(true)
+        const { data } = await api.get("/api/forfaits")
+        setForfaits(data)
       } catch (err) {
-        console.error("Erreur lors de la récupération des forfaits :", err);
+        console.error("Erreur lors de la récupération des forfaits :", err)
       }
-    };
+    }
 
     const fetchServices = async () => {
       try {
-        ;
-        const token = localStorage.getItem("token");
-
-        const { data } = await api.get("/api/services");
-
-        console.log("Services from API:", data);
-        setServices(data);
+        const token = localStorage.getItem("token")
+        const { data } = await api.get("/api/services")
+        setServices(data)
       } catch (err) {
-        console.error("Erreur lors de la récupération des services:", err);
+        console.error("Erreur lors de la récupération des services :", err)
       }
-    };
+    }
 
-    fetchServices();
-    fetchCategories();
-    fetchForfaits();
-  }, []);
+    fetchServices()
+    fetchCategories()
+    fetchForfaits()
+  }, [])
 
+  const servicesPerPage = 3
 
   return (
     <div className="min-h-screen">
@@ -98,63 +95,105 @@ export default function ServicesPage() {
       </section>
 
       {/* Services Sections */}
-      <section className="py-20">
+      <section className="py-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {categories.map((category, categoryIndex) => (
-            <div key={categoryIndex} className="mb-20">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-playfair font-bold text-charcoal mb-4">{category.nom}</h2>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{category.description}</p>
-              </div>
+          {categories.map((category, categoryIndex) => {
+            const currentPage = categoryPages[category.id] || 1
+            const totalPages = Math.ceil(category.services.length / servicesPerPage)
+            const startIndex = (currentPage - 1) * servicesPerPage
+            const visibleServices = category.services.slice(startIndex, startIndex + servicesPerPage)
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {category.services.map((service: Service, serviceIndex: number) => (
-                  <Card key={serviceIndex} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
-                    <Image
-                      src={`coiffure${Math.floor(Math.random() * 8) + 1}.jpg`} // image aléatoire entre coiffure1.jpg et coiffure8.jpg
-                      alt={service.nom}
-                      width={400}
-                      height={250}
-                      className="w-full h-52 object-cover"
-                    />
-                    <CardHeader>
-                      <CardTitle className="flex justify-between items-start">
-                        <span className="text-lg text-charcoal">{service.nom}</span>
-                        <span className="text-xl font-bold text-sage">{service.prix} Ar</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center text-gray-600">
-                        <Clock className="h-4 w-4 mr-2" />
-                        <span className="text-sm">{service.duree_minutes} min</span>
-                      </div>
-                      <ServiceDescription description={service.description} />
-                      <Button
-                        className="w-full bg-sage hover:bg-sage/90 text-white rounded-full"
-                        onClick={() => {
-                          if (!isLoggedIn) {
-                            // Affiche la notification
-                            showSuccess("Vous devez être connecté pour prendre un rendez-vous !");
-                            return;
-                          }
-                          setPreSelectedService(service);
-                          setInitialStep(2);
-                          setIsAppointmentModalOpen(true);
-                        }}
-                      >
-                        Réserver ce service
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+            return (
+              <div key={categoryIndex} className="mb-20">
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-playfair font-bold text-charcoal mb-4">{category.nom}</h2>
+                  <p className="text-lg text-gray-600 max-w-2xl mx-auto">{category.description}</p>
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleServices.map((service: Service, serviceIndex: number) => (
+                    <Card key={serviceIndex} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
+                      <Image
+                        src={`coiffure${Math.floor(Math.random() * 8) + 1}.jpg`}
+                        alt={service.nom}
+                        width={400}
+                        height={250}
+                        className="w-full h-52 object-cover"
+                      />
+                      <CardHeader>
+                        <CardTitle className="flex justify-between items-start">
+                          <span className="text-lg text-charcoal">{service.nom}</span>
+                          <span className="text-xl font-bold text-sage">{service.prix} Ar</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="h-4 w-4 mr-2" />
+                          <span className="text-sm">{service.duree_minutes} min</span>
+                        </div>
+                        <ServiceDescription description={service.description} />
+                        <Button
+                          className="w-full bg-sage hover:bg-sage/90 text-white rounded-full"
+                          onClick={() => {
+                            if (!isLoggedIn) {
+                              showSuccess("Vous devez être connecté pour prendre un rendez-vous !")
+                              return
+                            }
+                            setPreSelectedService(service)
+                            setInitialStep(2)
+                            setIsAppointmentModalOpen(true)
+                          }}
+                        >
+                          Réserver ce service
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-end mt-4 gap-2">
+                    <Button
+                      disabled={(categoryPages[category.id] || 1) === 1}
+                      onClick={() =>
+                        setCategoryPages({
+                          ...categoryPages,
+                          [category.id]: (categoryPages[category.id] || 1) - 1
+                        })
+                      }
+                      className={`text-white px-4 py-2 rounded-md font-medium transition-colors duration-200 ${(categoryPages[category.id] || 1) === 1
+                          ? "bg-gray-300 cursor-not-allowed"
+                          : "bg-[rgb(135,169,107)] hover:bg-[rgb(115,145,90)]"
+                        }`}
+                    >
+                      &lt;--
+                    </Button>
+
+                    <Button
+                      disabled={(categoryPages[category.id] || 1) === totalPages}
+                      onClick={() =>
+                        setCategoryPages({
+                          ...categoryPages,
+                          [category.id]: (categoryPages[category.id] || 1) + 1
+                        })
+                      }
+                      className={`text-white px-4 py-2 rounded-md font-medium transition-colors duration-200 ${(categoryPages[category.id] || 1) === totalPages
+                          ? "bg-gray-300 cursor-not-allowed"
+                          : "bg-[rgb(135,169,107)] hover:bg-[rgb(115,145,90)]"
+                        }`}
+                    >
+                      --&gt;
+                    </Button>
+                  </div>
+
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 
-      {/* Packages Section */}
+      {/* Forfaits Section */}
       <section className="py-20 bg-beige-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -164,9 +203,9 @@ export default function ServicesPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {forfaits.map((forfait, index) => {
-              const price = Number(forfait.prix);
-              const originalPrice = price + 200;
-              const isPopular = index === 1; // toujours le forfait du milieu comme plus populaire
+              const price = Number(forfait.prix)
+              const originalPrice = price + 200
+              const isPopular = index === 1
 
               return (
                 <Card key={forfait.id} className={`relative ${isPopular ? "ring-2 ring-sage scale-105" : ""}`}>
@@ -186,7 +225,7 @@ export default function ServicesPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <ul className="space-y-2">
-                      {forfait.services.map((service: Service, serviceIndex: number) => (
+                      {forfait.services.map((service: Service) => (
                         <li key={service.id} className="flex items-center text-gray-600">
                           <Star className="h-4 w-4 text-sage mr-2 flex-shrink-0" />
                           <span className="text-sm">{service.nom}</span>
@@ -204,12 +243,11 @@ export default function ServicesPage() {
                     </Button>
                   </CardContent>
                 </Card>
-              );
+              )
             })}
           </div>
         </div>
       </section>
-
 
       {/* CTA Section */}
       <section className="py-20 bg-sage text-white">
@@ -238,18 +276,19 @@ export default function ServicesPage() {
           </div>
         </div>
       </section>
-      {/* 🧠 Ce composant doit absolument être monté ici aussi */}
+
+      {/* Modals */}
       <Elements stripe={stripePromise}>
         {isAppointmentModalOpen && (
           <AppointmentModal
             isOpen={true}
             onClose={() => {
-              setPreSelectedService(null); // reset
-              setInitialStep(1);
-              setIsAppointmentModalOpen(false);
+              setPreSelectedService(null)
+              setInitialStep(1)
+              setIsAppointmentModalOpen(false)
             }}
-            initialService={preSelectedService} // peut être null si aucun service pré-sélectionné
-            services={!preSelectedService ? services : []} // liste seulement si aucun service pré-sélectionné
+            initialService={preSelectedService}
+            services={!preSelectedService ? services : []}
             initialStep={initialStep}
           />
         )}
@@ -269,7 +308,6 @@ export default function ServicesPage() {
         onClose={hideNotification}
         duration={6000}
       />
-
     </div>
   )
 }
