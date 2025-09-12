@@ -6,14 +6,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import api from "@/lib/api";
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState } from "react"
 import { CalendarDays, Clock, CreditCard, User } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import ErrorNotification, { useErrorNotification } from "@/app/(admin-group)/admin/components/ErrorNotification"
+
 
 interface PackageType {
   id: number
@@ -47,6 +51,7 @@ export default function PackageModal({
   const [step, setStep] = useState(initialStep)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTime, setSelectedTime] = useState("")
+  const [user, setUser] = useState<any | null>(null);
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     firstName: "",
     lastName: "",
@@ -54,8 +59,40 @@ export default function PackageModal({
     phone: "",
     note: ""
   })
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+
+        // Pré-remplir les infos client avec les données utilisateur
+        setClientInfo(prev => ({
+          ...prev,
+          firstName: parsedUser.name || "",
+          email: parsedUser.email || "",
+          phone: parsedUser.phone || "",
+        }));
+      } catch (error) {
+        console.error("Erreur parsing user:", error);
+        setUser(null);
+      }
+    }
+  }, []);
+
+  // ✅ Maintenant les hooks sont dans le contexte Elements !
+  const stripe = useStripe();
+  const elements = useElements();
+
   const [paymentMethod, setPaymentMethod] = useState<"online" | "onsite" | "">("")
   const [isConfirmed, setIsConfirmed] = useState(false)
+  const { notification, showError, hideNotification } = useErrorNotification()
+
+  function formatDateForApi(date?: Date | string): string | null {
+    if (!date) return null; // ou tu peux throw une erreur selon ton cas
+    return new Date(date).toISOString().split("T")[0];
+  }
 
   const handleClose = () => {
     setStep(1)
@@ -70,19 +107,90 @@ export default function PackageModal({
   const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
 
   const isClientInfoValid = () => {
-    return clientInfo.firstName && clientInfo.lastName && clientInfo.email && clientInfo.phone
+    return clientInfo.firstName && clientInfo.email && clientInfo.phone
   }
 
-  const handleConfirmReservation = () => {
-    setIsConfirmed(true)
-    // Ici vous pouvez ajouter la logique pour envoyer les données au serveur
-    console.log("Réservation confirmée:", {
-      package: initialPackage,
-      date: selectedDate,
-      time: selectedTime,
-      client: clientInfo,
-      paymentMethod
-    })
+  const handleConfirmReservation = async () => {
+    const apiDate = selectedDate ? formatDateForApi(selectedDate) : null;
+    if (!stripe || !elements) {
+      console.log("Stripe pas encore prêt:", { stripe, elements });
+      showError("Le paiement n'est pas prêt. Veuillez réessayer.");
+      return;
+    }
+
+    if (paymentMethod === "online") {
+      const cardElement = elements.getElement(CardElement);
+
+      if (!cardElement) {
+        console.error("CardElement non trouvé");
+        showError("Impossible de trouver le champ de carte. Veuillez réessayer.");
+        return;
+      }
+
+      try {
+        // Crée un PaymentMethod Stripe
+        const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
+          type: "card",
+          card: cardElement,
+          billing_details: {
+            name: `${user.nom}`,
+            email: user.email,
+            phone: user.phone,
+          },
+        });
+
+        if (error) {
+          console.error("Erreur Stripe:", error);
+          showError(`Erreur de paiement : ${error.message}`);
+          setIsConfirmed(false);
+          return;
+        }
+
+        // Envoyer la réservation au serveur
+        await api.post("/api/appointments/forfaits", {
+          package: initialPackage,
+          client_id: user?.id,
+          date: apiDate,
+          heure: selectedTime,
+          mode_paiement: "paiement_en_ligne",
+          stripe_payment_method_id: stripePaymentMethod.id,
+          note: clientInfo.note,
+          status: "confirmé",
+          paye: 1,
+          price: initialPackage?.prix,
+        });
+
+      } catch (err: any) {
+        console.error("Erreur lors du paiement:", err);
+        const message = err.response?.data?.message || "Une erreur s'est produite lors du paiement.";
+        showError(message);
+        setIsConfirmed(false);
+        return;
+      }
+
+    } else {
+      try {
+        // Paiement en espèces
+        await api.post("/api/appointments/forfaits", {
+          package: initialPackage,
+          client_id: user?.id,
+          date: apiDate,
+          heure: selectedTime,
+          mode_paiement: "especes",
+          note: clientInfo.note,
+          status: "confirmé",
+          paye: 0,
+        });
+      } catch (err: any) {
+        console.error("Erreur lors de la réservation:", err);
+        const message = err.response?.data?.message || "Erreur lors de la réservation.";
+        showError(message);
+        setIsConfirmed(false);
+        return;
+      }
+    }
+
+    setIsConfirmed(true);
   }
 
   return (
@@ -147,44 +255,47 @@ export default function PackageModal({
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName">Prénom *</Label>
+                    <Label htmlFor="firstName">Nom et Prénom </Label>
                     <Input
                       id="firstName"
                       value={clientInfo.firstName}
                       onChange={(e) => setClientInfo({ ...clientInfo, firstName: e.target.value })}
-                      placeholder="Votre prénom"
+                      placeholder="Votre prénom"readOnly
                     />
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Nom *</Label>
+                    <Label htmlFor="lastName">Identifiant unique</Label>
                     <Input
                       id="lastName"
-                      value={clientInfo.lastName}
+                      value="FOR-221-BT"
                       onChange={(e) => setClientInfo({ ...clientInfo, lastName: e.target.value })}
                       placeholder="Votre nom"
+                      readOnly
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={clientInfo.email}
                       onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
                       placeholder="votre.email@exemple.com"
+                      readOnly
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="phone">Téléphone *</Label>
+                    <Label htmlFor="phone">Téléphone</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={clientInfo.phone}
                       onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
                       placeholder="06 12 34 56 78"
+                      readOnly
                     />
                   </div>
                 </div>
@@ -228,11 +339,11 @@ export default function PackageModal({
 
 
               <CardContent className="space-y-3">
-                {/* ID du service */}
-                <div className="flex items-center space-x-3">
+                {/* ID du forfait */}
+                {/* <div className="flex items-center space-x-3">
                   <span className="font-medium text-muted-foreground">Identifiant :</span>
                   <span>{initialPackage?.id}</span>
-                </div>
+                </div> */}
 
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-sage" />
@@ -241,7 +352,7 @@ export default function PackageModal({
 
                 <div className="flex items-center space-x-3">
                   <CalendarDays className="h-5 w-5 text-sage" />
-                  <span>{selectedDate?.toLocaleDateString("fr-FR")} - {selectedTime}</span>
+                  <span>{selectedDate?.toLocaleDateString("fr-FR")}</span>
                 </div>
 
                 <div className="flex items-center space-x-3">
@@ -289,28 +400,36 @@ export default function PackageModal({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="cardNumber">Numéro de carte</Label>
-                    <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expiry">Date d'expiration</Label>
-                      <Input id="expiry" placeholder="MM/AA" />
+                  {!stripe || !elements ? (
+                    <div className="p-3 border rounded-md bg-yellow-50">
+                      <p className="text-yellow-800">⏳ Chargement de Stripe...</p>
                     </div>
-                    <div>
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input id="cvv" placeholder="123" />
+                  ) : (
+                    <div className="p-3 border rounded-md">
+                      <CardElement
+                        options={{
+                          style: {
+                            base: {
+                              fontSize: "16px",
+                              color: "#32325d",
+                              fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                              fontSmoothing: "antialiased",
+                              "::placeholder": {
+                                color: "#aab7c4"
+                              }
+                            },
+                            invalid: {
+                              color: "#e53e3e",
+                              iconColor: "#e53e3e"
+                            },
+                          },
+                        }}
+                      />
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="cardName">Nom sur la carte</Label>
-                    <Input id="cardName" placeholder="Nom complet" />
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             )}
-
             <div className="flex justify-between gap-4 sticky bottom-0 bg-white pt-4 mt-4 border-t">
               <Button
                 variant="outline"

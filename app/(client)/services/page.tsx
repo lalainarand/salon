@@ -164,7 +164,7 @@ export default function ServicesPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {forfaits.map((forfait, index) => {
               const price = Number(forfait.prix);
-              const originalPrice = price + 20;
+              const originalPrice = price + 200;
               const isPopular = index === 1; // toujours le forfait du milieu comme plus populaire
 
               return (
@@ -180,7 +180,7 @@ export default function ServicesPage() {
                     <CardTitle className="text-2xl font-playfair text-charcoal">{forfait.nom}</CardTitle>
                     <div className="space-y-2">
                       <div className="text-3xl font-bold text-sage">{price}Ar</div>
-                      <div className="text-sm text-gray-500 line-through">{originalPrice}€</div>
+                      <div className="text-sm text-gray-500 line-through">{originalPrice}Ar</div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -254,12 +254,13 @@ export default function ServicesPage() {
         )}
       </Elements>
 
-
-      <PackageModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        initialPackage={selectedPackage}
-      />
+      <Elements stripe={stripePromise}>
+        <PackageModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          initialPackage={selectedPackage}
+        />
+      </Elements>
 
       <SuccessNotification
         show={notification.show}

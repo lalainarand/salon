@@ -338,21 +338,23 @@ function AppointmentModalContent({
               <h3 className="text-lg font-semibold text-charcoal mb-4">Vos informations</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label htmlFor="firstName">Nom et prénom</Label>
                   <Input
                     id="firstName"
                     value={clientInfo.firstName}
                     onChange={(e) => setClientInfo({ ...clientInfo, firstName: e.target.value })}
+                    readOnly
                     placeholder="Votre prénom"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label htmlFor="lastName">Identifiant</Label>
                   <Input
                     id="lastName"
-                    value={clientInfo.lastName}
+                    value='SERV-0010-BT'
                     onChange={(e) => setClientInfo({ ...clientInfo, lastName: e.target.value })}
                     placeholder="Votre nom"
+                    
                   />
                 </div>
                 <div>
@@ -363,6 +365,7 @@ function AppointmentModalContent({
                     value={clientInfo.email}
                     onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
                     placeholder="votre.email@exemple.com"
+                    readOnly
                   />
                 </div>
                 <div>
@@ -373,6 +376,7 @@ function AppointmentModalContent({
                     value={clientInfo.phone}
                     onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
                     placeholder="06 12 34 56 78"
+                    readOnly
                   />
                 </div>
               </div>
@@ -402,10 +406,10 @@ function AppointmentModalContent({
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {/* ID du service */}
-                  <div className="flex items-center space-x-3">
+                  {/* <div className="flex items-center space-x-3">
                     <span className="font-medium text-muted-foreground">Identifiant :</span>
                     <span>{selectedService?.id}</span>
-                  </div>
+                  </div> */}
 
                   <div className="flex items-center space-x-3">
                     <User className="h-5 w-5 text-sage" />
@@ -544,7 +548,7 @@ function AppointmentModalContent({
                   disabled={
                     (step === 1 && !selectedService) ||
                     (step === 2 && (!selectedDate || !selectedTime)) ||
-                    (step === 3 && (!clientInfo.firstName || !clientInfo.lastName || !clientInfo.email))
+                    (step === 3 && (!clientInfo.firstName || !clientInfo.email))
                   }
                   className="bg-sage hover:bg-sage/90"
                 >

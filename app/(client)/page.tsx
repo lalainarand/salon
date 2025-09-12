@@ -91,7 +91,9 @@ export default function HomePage() {
                   size="lg"
                   className="border-sage text-sage hover:bg-sage/10 px-8 py-3 rounded-full bg-transparent"
                 >
-                  Découvrir nos services
+                  <Link href="/services" className="text-sage font-medium">
+                    Découvrir nos services
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -295,7 +297,7 @@ export default function HomePage() {
       {isAppointmentModalOpen && (
         <Elements stripe={stripePromise}>
           <AppointmentModal
-            isOpen={true} 
+            isOpen={true}
             onClose={() => setIsAppointmentModalOpen(false)}
             services={services}
           />

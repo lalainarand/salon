@@ -29,7 +29,7 @@ export default function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const { notification, showSuccess, hideNotification } = useSuccessNotification();
   const [services, setServices] = useState<Service[]>([]);
-  const {logout} = useAuth()
+  const { logout } = useAuth()
 
   useEffect(() => {
     // Vérifie si l'utilisateur est connecté
@@ -49,7 +49,7 @@ export default function Header() {
     // Récupère les services depuis l'API
     const fetchServices = async () => {
       try {
-      ;
+        ;
         const token = localStorage.getItem("token");
 
         const { data } = await api.get("/api/services");
@@ -68,7 +68,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-     logout();
+      logout();
       // Mettre à jour l'état dans React
       setIsLoggedIn(false);
       setIsDropdownOpen(false);
@@ -92,11 +92,19 @@ export default function Header() {
       <header className="bg-white shadow-sm border-b border-beige-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-2xl font-playfair font-bold text-charcoal">
-                Beauty Salon
+            <div className="flex items-center space-x-3">
+              <Link href="/" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="Logo Beauty Salon"
+                  className="h-10 w-10 object-contain"
+                />
+                <span className="text-2xl font-playfair font-bold text-charcoal ml-2">
+                  Beauty Salon
+                </span>
               </Link>
             </div>
+
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
