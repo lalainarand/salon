@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   // On récupère le token depuis le cookie
   const token = request.cookies.get("token")?.value;
+  console.log('token middleware',token)
 
   // Si pas de token et que l'utilisateur essaie d'accéder à /dashboard*, on le redirige
   if (!token && request.nextUrl.pathname.startsWith("/admin")) {

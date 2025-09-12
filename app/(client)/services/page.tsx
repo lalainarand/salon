@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Star } from "lucide-react"
+import Link from "next/link"
 import { useState, useEffect } from "react"
 import api from "@/lib/api";
 import Cookies from "js-cookie"
@@ -23,8 +24,11 @@ export default function ServicesPage() {
   const [initialStep, setInitialStep] = useState<number>(1)
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null)
   const [categories, setCategories] = useState<any[]>([]);
+  const [forfaits, setForfaits] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [services, setServices] = useState<Service[]>([]);
+
 
   const handleOpenModal = (pkg: any) => {
     setSelectedPackage(pkg)
@@ -34,8 +38,8 @@ export default function ServicesPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-  
-        const token = Cookies.get("token") || localStorage.getItem("token");
+
+        const token = localStorage.getItem("token");
         if (token) setIsLoggedIn(true);
         const { data } = await api.get("/api/categories");
         setCategories(data);
@@ -44,7 +48,36 @@ export default function ServicesPage() {
       }
     };
 
+    const fetchForfaits = async () => {
+      try {
+
+        const token = localStorage.getItem("token");
+        if (token) setIsLoggedIn(true);
+        const { data } = await api.get("/api/forfaits");
+        console.log('liste des forfaits', data);
+        setForfaits(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des forfaits :", err);
+      }
+    };
+
+    const fetchServices = async () => {
+      try {
+        ;
+        const token = localStorage.getItem("token");
+
+        const { data } = await api.get("/api/services");
+
+        console.log("Services from API:", data);
+        setServices(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des services:", err);
+      }
+    };
+
+    fetchServices();
     fetchCategories();
+    fetchForfaits();
   }, []);
 
 
@@ -129,72 +162,53 @@ export default function ServicesPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                id: 1,
-                name: "Forfait Détente",
-                price: "120€",
-                originalPrice: "140€",
-                services: ["Soin du visage hydratant", "Massage relaxant 30min", "Manucure classique"],
-                popular: false,
-              },
-              {
-                id: 2,
-                name: "Forfait Glamour",
-                price: "180€",
-                originalPrice: "210€",
-                services: ["Coupe + Brushing", "Soin du visage éclat", "Manucure semi-permanent", "Teinture sourcils"],
-                popular: true,
-              },
-              {
-                id: 3,
-                name: "Forfait Prestige",
-                price: "250€",
-                originalPrice: "290€",
-                services: ["Coloration + Coupe", "Soin anti-âge", "Manucure + Pédicure", "Massage complet 1h"],
-                popular: false,
-              },
-            ].map((package_, index) => (
-              <Card key={index} className={`relative ${package_.popular ? "ring-2 ring-sage scale-105" : ""}`}>
-                {package_.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-sage text-white px-4 py-1 rounded-full text-sm font-medium">
-                      Le plus populaire
-                    </span>
-                  </div>
-                )}
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl font-playfair text-charcoal">{package_.name}</CardTitle>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-sage">{package_.price}</div>
-                    <div className="text-sm text-gray-500 line-through">{package_.originalPrice}</div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2">
-                    {package_.services.map((service, serviceIndex) => (
-                      <li key={serviceIndex} className="flex items-center text-gray-600">
-                        <Star className="h-4 w-4 text-sage mr-2 flex-shrink-0" />
-                        <span className="text-sm">{service}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className={`w-full rounded-full ${package_.popular
-                      ? "bg-sage hover:bg-sage/90 text-white"
-                      : "bg-white border-2 border-sage text-sage hover:bg-sage hover:text-white"
-                      }`}
-                    onClick={() => handleOpenModal(package_)}
-                  >
-                    Réserver ce forfait
-                  </Button>
+            {forfaits.map((forfait, index) => {
+              const price = Number(forfait.prix);
+              const originalPrice = price + 20;
+              const isPopular = index === 1; // toujours le forfait du milieu comme plus populaire
 
-                </CardContent>
-              </Card>
-            ))}
+              return (
+                <Card key={forfait.id} className={`relative ${isPopular ? "ring-2 ring-sage scale-105" : ""}`}>
+                  {isPopular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-sage text-white px-4 py-1 rounded-full text-sm font-medium">
+                        Le plus populaire
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-2xl font-playfair text-charcoal">{forfait.nom}</CardTitle>
+                    <div className="space-y-2">
+                      <div className="text-3xl font-bold text-sage">{price}Ar</div>
+                      <div className="text-sm text-gray-500 line-through">{originalPrice}€</div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ul className="space-y-2">
+                      {forfait.services.map((service: Service, serviceIndex: number) => (
+                        <li key={service.id} className="flex items-center text-gray-600">
+                          <Star className="h-4 w-4 text-sage mr-2 flex-shrink-0" />
+                          <span className="text-sm">{service.nom}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      className={`w-full rounded-full ${isPopular
+                        ? "bg-sage hover:bg-sage/90 text-white"
+                        : "bg-white border-2 border-sage text-sage hover:bg-sage hover:text-white"
+                        }`}
+                      onClick={() => handleOpenModal(forfait)}
+                    >
+                      Réserver ce forfait
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
+
 
       {/* CTA Section */}
       <section className="py-20 bg-sage text-white">
@@ -213,28 +227,33 @@ export default function ServicesPage() {
               Prendre rendez-vous
             </Button>
             <Button
+              asChild
               size="lg"
               variant="outline"
               className="border-white text-white hover:bg-white hover:text-sage px-8 py-3 rounded-full bg-transparent"
             >
-              Nous contacter
+              <Link href="/contact">Nous contacter</Link>
             </Button>
           </div>
         </div>
       </section>
       {/* 🧠 Ce composant doit absolument être monté ici aussi */}
       <Elements stripe={stripePromise}>
-        <AppointmentModal
-          isOpen={isAppointmentModalOpen}
-          onClose={() => {
-            setPreSelectedService(null) // Reset à la fermeture
-            setInitialStep(1)
-            setIsAppointmentModalOpen(false)
-          }}
-          initialService={preSelectedService}
-          initialStep={initialStep}
-        />
+        {isAppointmentModalOpen && (
+          <AppointmentModal
+            isOpen={true}
+            onClose={() => {
+              setPreSelectedService(null); // reset
+              setInitialStep(1);
+              setIsAppointmentModalOpen(false);
+            }}
+            initialService={preSelectedService} // peut être null si aucun service pré-sélectionné
+            services={!preSelectedService ? services : []} // liste seulement si aucun service pré-sélectionné
+            initialStep={initialStep}
+          />
+        )}
       </Elements>
+
 
       <PackageModal
         isOpen={isModalOpen}

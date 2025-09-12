@@ -13,6 +13,7 @@ import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CalendarDays, Clock, CreditCard, User } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import ErrorNotification, { useErrorNotification } from "@/app/(admin-group)/admin/components/ErrorNotification"
 
 interface AppointmentModalProps {
   isOpen: boolean;
@@ -36,11 +37,10 @@ export default function AppointmentModal({
   onClose,
   initialService,
   initialStep,
-  services = [],
+  services = [], // tableau vide par défaut si pas fourni
 }: AppointmentModalProps & { initialService?: Service | null }) {
 
   // Pas de hooks Stripe ici !
-
   if (!isOpen) return null;
 
   return (
@@ -48,10 +48,11 @@ export default function AppointmentModal({
       onClose={onClose}
       initialService={initialService}
       initialStep={initialStep}
-      services={services}
+      services={services} // toujours un tableau
     />
   );
 }
+
 
 function formatDateForApi(date?: Date | string): string | null {
   if (!date) return null; // ou tu peux throw une erreur selon ton cas
@@ -80,6 +81,7 @@ function AppointmentModalContent({
   const [user, setUser] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isshowbtn, setIsisshowbtn] = useState(true)
+  const { notification, showError, hideNotification } = useErrorNotification()
   const [paymentMethod, setPaymentMethod] = useState("")
   const [selectedService, setSelectedService] = useState<Service | null>(
     initialService ?? null
@@ -115,9 +117,9 @@ function AppointmentModalContent({
   }
 
   const handleConfirmReservation = async () => {
-
     if (!stripe || !elements) {
       console.log("Stripe pas encore prêt:", { stripe, elements });
+      showError("Le paiement n'est pas prêt. Veuillez réessayer.");
       return;
     }
 
@@ -126,6 +128,7 @@ function AppointmentModalContent({
 
       if (!cardElement) {
         console.error("CardElement non trouvé");
+        showError("Impossible de trouver le champ de carte. Veuillez réessayer.");
         return;
       }
 
@@ -143,12 +146,13 @@ function AppointmentModalContent({
 
         if (error) {
           console.error("Erreur Stripe:", error);
-          alert("Erreur de paiement: " + error.message);
+          showError(`Erreur de paiement : ${error.message}`);
           setIsConfirmed(false);
           setIsisshowbtn(true);
           return;
         }
-        // await getCsrfCookie();
+
+        // Envoyer la réservation au serveur
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
@@ -157,14 +161,15 @@ function AppointmentModalContent({
           mode_paiement: "paiement_en_ligne",
           stripe_payment_method_id: stripePaymentMethod.id,
           note: clientInfo.note,
-          status: 'confirmé',
-          paye : 1,
-          price : selectedService?.prix
+          status: "confirmé",
+          paye: 1,
+          price: selectedService?.prix,
         });
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erreur lors du paiement:", err);
-        alert("Une erreur s'est produite lors du paiement");
+        const message = err.response?.data?.message || "Une erreur s'est produite lors du paiement.";
+        showError(message);
         setIsConfirmed(false);
         setIsisshowbtn(true);
         return;
@@ -172,7 +177,7 @@ function AppointmentModalContent({
 
     } else {
       try {
-        // Paiement en cash
+        // Paiement en espèces
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
@@ -180,21 +185,23 @@ function AppointmentModalContent({
           heure: selectedTime,
           mode_paiement: "especes",
           note: clientInfo.note,
-          status: 'confirmé',
-          paye: 0
+          status: "confirmé",
+          paye: 0,
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erreur lors de la réservation:", err);
-        alert("Erreur lors de la réservation");
+        const message = err.response?.data?.message || "Erreur lors de la réservation.";
+        showError(message);
         setIsConfirmed(false);
         setIsisshowbtn(true);
         return;
       }
     }
+
     setIsConfirmed(true);
     setIsisshowbtn(false);
-
   };
+
 
   useEffect(() => {
     if (initialStep) {
@@ -556,6 +563,13 @@ function AppointmentModalContent({
           )}
         </div>
       </DialogContent>
+      <ErrorNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000} // 4 secondes
+      />
+
     </Dialog>
   )
 }

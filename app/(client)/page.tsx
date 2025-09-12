@@ -1,21 +1,48 @@
 'use client'
 
 import Link from "next/link"
+import api from "@/lib/api";
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Star, Award, Users, Clock } from "lucide-react"
 import { Swiper, SwiperSlide } from 'swiper/react'
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { stripePromise } from "@/lib/stripe";
 import { Navigation, Pagination } from 'swiper/modules'
 import AppointmentModal from "@/components/appointment-modal"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import 'swiper/css'
 import 'swiper/css/navigation'
+import { Service } from "@/app/(client)/Types/service";
+
 import 'swiper/css/pagination'
 import React, { createContext } from 'react'
 
 
 export default function HomePage() {
+  const [services, setServices] = useState<Service[]>([]);
+
+
+  useEffect(() => {
+
+    const fetchServices = async () => {
+      try {
+        ;
+        const token = localStorage.getItem("token");
+
+        const { data } = await api.get("/api/services");
+
+        console.log("Services from API:", data);
+        setServices(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des services:", err);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
 
@@ -264,11 +291,17 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-      {/* 🧠 Ce composant doit absolument être monté ici aussi */}
-      <AppointmentModal
-        isOpen={isAppointmentModalOpen}
-        onClose={() => setIsAppointmentModalOpen(false)}
-      />
+
+      {isAppointmentModalOpen && (
+        <Elements stripe={stripePromise}>
+          <AppointmentModal
+            isOpen={true} 
+            onClose={() => setIsAppointmentModalOpen(false)}
+            services={services}
+          />
+        </Elements>
+      )}
+
     </div>
   )
 }

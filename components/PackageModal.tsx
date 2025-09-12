@@ -17,8 +17,8 @@ import { Textarea } from "@/components/ui/textarea"
 
 interface PackageType {
   id: number
-  name: string
-  price: string
+  nom: string
+  prix: string
   originalPrice: string
   services: string[]
 }
@@ -236,7 +236,7 @@ export default function PackageModal({
 
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-sage" />
-                  <span>{initialPackage?.name}</span>
+                  <span>{initialPackage?.nom}</span>
                 </div>
 
                 <div className="flex items-center space-x-3">
@@ -252,7 +252,7 @@ export default function PackageModal({
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total:</span>
-                    <span className="text-sage">{initialPackage?.price}</span>
+                    <span className="text-sage">{initialPackage?.prix} Ar</span>
                   </div>
                 </div>
               </CardContent>
@@ -341,7 +341,7 @@ export default function PackageModal({
             <h2 className="text-2xl font-semibold text-green-800">Réservation confirmée !</h2>
             <div className="bg-green-50 p-4 rounded-lg">
               <p className="text-green-800">
-                Votre rendez-vous pour <strong>{initialPackage?.name}</strong>
+                Votre rendez-vous pour <strong>{initialPackage?.nom}</strong>
               </p>
               <p className="text-green-700">
                 le {selectedDate?.toLocaleDateString("fr-FR")} à {selectedTime}

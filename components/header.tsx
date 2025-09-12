@@ -33,7 +33,7 @@ export default function Header() {
 
   useEffect(() => {
     // Vérifie si l'utilisateur est connecté
-    const token = Cookies.get("token") || localStorage.getItem("token");
+    const token = localStorage.getItem("token");
     if (token) setIsLoggedIn(true);
 
     const storedUser = localStorage.getItem("user");
@@ -50,7 +50,7 @@ export default function Header() {
     const fetchServices = async () => {
       try {
       ;
-        const token = Cookies.get("token") || localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         const { data } = await api.get("/api/services");
 

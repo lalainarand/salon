@@ -49,14 +49,21 @@ export function useAuth() {
     try {
       const { data } = await api.post("/api/login", payload);
       if (data.token) {
+        // Stockage côté client pour les appels API depuis React
         localStorage.setItem("user", JSON.stringify(data.user));
         saveToken(data.token);
+
+        // Stockage côté cookie pour le middleware (Next.js)
+        document.cookie = `token=${data.token}; path=/; max-age=86400; Secure; SameSite=Lax`;
+
         onSuccess?.(data);
       }
       return data;
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Erreur lors de la connexion");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {

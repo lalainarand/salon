@@ -1,26 +1,39 @@
 'use client'
 
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useState } from "react"
+import { Elements } from "@stripe/react-stripe-js";
+import { Service } from "@/app/(client)/Types/service";
+import { loadStripe } from "@stripe/stripe-js";
+import { stripePromise } from "@/lib/stripe";
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MapPin, Phone, Mail, Clock, Instagram, Facebook } from "lucide-react"
 import AppointmentModal from "@/components/appointment-modal"
 
 export default function ContactPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [services, setServices] = useState<Service[]>([]);
+
+  const phoneNumber = "+33123456789" 
+
+  const handleCall = () => {
+    window.location.href = `tel:${phoneNumber}`
+  }
+
   const contactInfo = [
     {
       icon: MapPin,
       title: "Adresse",
-      details: ["123 Rue de la Beauté", "75001 Paris, France"],
+      details: ["Lot II BIS", "Ankadindramamy, Tananarive"],
     },
     {
       icon: Phone,
       title: "Téléphone",
-      details: ["01 23 45 67 89", "06 12 34 56 78"],
+      details: ["034 85 146 92", "032 62 641 88"],
     },
     {
       icon: Mail,
@@ -38,6 +51,25 @@ export default function ContactPage() {
     { icon: Instagram, name: "Instagram", handle: "@beautysalon_paris" },
     { icon: Facebook, name: "Facebook", handle: "Beauty Salon Paris" },
   ]
+
+  useEffect(() => {
+
+    const fetchServices = async () => {
+      try {
+        ;
+        const token = localStorage.getItem("token");
+
+        const { data } = await api.get("/api/services");
+
+        console.log("Services from API:", data);
+        setServices(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des services:", err);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -202,6 +234,7 @@ export default function ContactPage() {
               Prendre rendez-vous
             </Button>
             <Button
+              onClick={handleCall}
               size="lg"
               variant="outline"
               className="border-white text-white hover:bg-white hover:text-sage px-8 py-3 rounded-full bg-transparent"
@@ -212,10 +245,16 @@ export default function ContactPage() {
         </div>
       </section>
       {/* 🧠 Ce composant doit absolument être monté ici aussi */}
-      <AppointmentModal
-        isOpen={isAppointmentModalOpen}
-        onClose={() => setIsAppointmentModalOpen(false)}
-      />
+      {isAppointmentModalOpen && (
+        <Elements stripe={stripePromise}>
+          <AppointmentModal
+            isOpen={true}
+            onClose={() => setIsAppointmentModalOpen(false)}
+            services={services}
+          />
+        </Elements>
+      )}
+
     </div>
   )
 }
