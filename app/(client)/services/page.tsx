@@ -14,6 +14,7 @@ import Image from "next/image"
 import { Service } from "@/app/(client)/Types/service";
 import AppointmentModal from "@/components/appointment-modal"
 import PackageModal from "@/components/PackageModal"
+import ServiceDescription from "@/components/ServiceDescription"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
 
 
@@ -127,7 +128,7 @@ export default function ServicesPage() {
                         <Clock className="h-4 w-4 mr-2" />
                         <span className="text-sm">{service.duree_minutes} min</span>
                       </div>
-                      <p className="text-gray-600">{service.description}</p>
+                      <ServiceDescription description={service.description} />
                       <Button
                         className="w-full bg-sage hover:bg-sage/90 text-white rounded-full"
                         onClick={() => {
