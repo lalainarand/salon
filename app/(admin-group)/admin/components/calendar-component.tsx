@@ -10,35 +10,46 @@ import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 
-const events = [
-  {
-    id: 1,
-    title: "Marie D. - Coupe",
-    date: "2025-08-01", // 1er août 2025 (vendredi)
-    time: "09:00",
-    duration: "1h",
-    employee: "Sophie",
-    status: "confirmed",
-  },
-  {
-    id: 2,
-    title: "Jean M. - Barbe",
-    date: "2025-08-02", // samedi
-    time: "10:30",
-    duration: "2h",
-    employee: "Pierre",
-    status: "pending",
-  },
-  {
-    id: 3,
-    title: "Anna L. - Coloration",
-    date: "2025-08-05", // mardi
-    time: "14:00",
-    duration: "2h",
-    employee: "Marie",
-    status: "confirmed",
-  },
-]
+// const events = [
+//   {
+//     id: 1,
+//     title: "Marie D. - Coupe",
+//     date: "2025-08-01", // 1er août 2025 (vendredi)
+//     time: "09:00",
+//     duration: "1h",
+//     employee: "Sophie",
+//     status: "confirmed",
+//   },
+//   {
+//     id: 2,
+//     title: "Jean M. - Barbe",
+//     date: "2025-08-02", // samedi
+//     time: "10:30",
+//     duration: "2h",
+//     employee: "Pierre",
+//     status: "pending",
+//   },
+//   {
+//     id: 3,
+//     title: "Anna L. - Coloration",
+//     date: "2025-08-05", // mardi
+//     time: "14:00",
+//     duration: "2h",
+//     employee: "Marie",
+//     status: "confirmed",
+//   },
+// ]
+
+interface EventType {
+  id: number
+  title: string
+  date: string
+  time: string
+  duration: string
+  employee: string
+  status: string
+}
+
 
 
 const timeSlots = [
@@ -56,8 +67,33 @@ export function CalendarComponent() {
   const [services, setServices] = useState<Service[]>([]);
   const [employees, setEmployes] = useState<Employees[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [events, setEvents] = useState<EventType[]>([])
 
 
+
+  const fetchAppointments = async () => {
+    try {
+      const { data } = await api.get("/api/events")
+      console.log("events from API:", data)
+
+      const mapped = data.map((a: any) => ({
+        id: a.id,
+        title: `${a.client?.name || "Client"} - ${a.service?.nom || "Service"}`,
+        date: a.date, // ex: "2025-08-01"
+        time: a.heure, // ex: "09:00:00"
+        duration: a.service?.duree_minutes
+          ? `${a.service.duree_minutes} min`
+          : "1h",
+        employee: a.employe?.name || a.employe?.user?.name || "Non assignée",
+        status: a.status,
+      }))
+
+      setEvents(mapped)
+
+    } catch (err) {
+      console.error("Erreur API rendez-vous:", err)
+    }
+  }
 
   useEffect(() => {
     // Récupère les services depuis l'API
@@ -94,9 +130,10 @@ export function CalendarComponent() {
       }
     };
 
-    fetchServices();
-    fetchEmployes();
-    fetchUsers();
+    fetchServices()
+    fetchEmployes()
+    fetchUsers()
+    fetchAppointments()
   }, []);
 
   const handleSaveAppointment = async (data: AppointmentFormType) => {
@@ -146,10 +183,16 @@ export function CalendarComponent() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "confirmed":
+      case "Non assignée":
         return "bg-green-100 text-green-800 border-green-200"
-      case "pending":
+      case "en_attente":
         return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      case "confirmé":
+        return "bg-blue-100 text-blue-800 border-blue-200"
+      case "terminé":
+        return "bg-green-200 text-green-900 border-green-300"
+      case "annulé":
+        return "bg-red-100 text-red-800 border-red-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
@@ -273,7 +316,7 @@ export function CalendarComponent() {
                             </p>
                           </div>
                           <Badge variant="secondary" className="text-xs">
-                            {event.status === "confirmed" ? "Confirmé" : "En attente"}
+                            {event.status}
                           </Badge>
                         </div>
                       </div>
@@ -330,7 +373,7 @@ export function CalendarComponent() {
                               <div className="flex justify-between">
                                 <span>{event.title}</span>
                                 <Badge variant="secondary" className="text-[10px]">
-                                  {event.status === "confirmed" ? "Confirmé" : "En attente"}
+                                  {event.status}
                                 </Badge>
                               </div>
                               <div className="opacity-70">
