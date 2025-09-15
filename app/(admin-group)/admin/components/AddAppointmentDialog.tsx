@@ -59,7 +59,7 @@ export default function AddAppointmentDialog({
       date: "",
       time: "",
       duration: "60",
-      status: "pending",
+      status: "en_attente",
       notes: "",
     }
   })
@@ -67,6 +67,7 @@ export default function AddAppointmentDialog({
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setForm(initialData)
+      console.log('form edition', initialData)
     } else if (mode === "add") {
       // Reset le formulaire pour un nouveau rendez-vous
       setForm({
@@ -77,7 +78,7 @@ export default function AddAppointmentDialog({
         date: "",
         time: "",
         duration: "60",
-        status: "pending",
+        status: "en_attente",
         notes: "",
       })
     }
@@ -85,15 +86,14 @@ export default function AddAppointmentDialog({
 
   const handleChange = <K extends keyof AppointmentFormType>(key: K, value: AppointmentFormType[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
+    console.log('form', form);
   }
 
   const handleSubmit = () => {
-    // Validation basique avant soumission
     if (!form.user || !form.service || !form.date || !form.time) {
       alert("Veuillez remplir tous les champs obligatoires")
       return
     }
-
     onSubmit(form)
     onOpenChange(false)
   }
@@ -155,7 +155,7 @@ export default function AddAppointmentDialog({
               onValueChange={(value) => {
                 const selected = services.find((s) => s.id.toString() === value)
                 if (selected) {
-                  handleChange("service", selected)
+                  handleChange("service", selected) // met à jour le service sélectionné dans le form
                 }
               }}
             >
@@ -165,7 +165,7 @@ export default function AddAppointmentDialog({
               <SelectContent>
                 {services.map((serv) => (
                   <SelectItem key={serv.id} value={serv.id.toString()}>
-                    {serv.name}
+                    {serv.nom} {/* ici on affiche le champ nom de l'API */}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -177,11 +177,12 @@ export default function AddAppointmentDialog({
             <Label>Prix (Ar)</Label>
             <Input
               type="number"
-              value={form.service?.price.toString() || ""}
+              value={form.service?.prix || ""}
               placeholder="Sélectionnez d'abord un service"
               readOnly
             />
           </div>
+
 
           <div className="space-y-2">
             <div className="space-y-2">
@@ -200,7 +201,7 @@ export default function AddAppointmentDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id.toString()}>
+                    <SelectItem key={employee?.id} value={employee.id.toString()}>
                       {employee.name}
                     </SelectItem>
                   ))}
@@ -214,11 +215,16 @@ export default function AddAppointmentDialog({
             <Label>Poste</Label>
             <Input
               type="text"
-              value={form.employee?.poste || ""}
+              value={
+                form.employee?.employe?.poste
+                  ? form.employee.employe.poste
+                  : form.employee?.poste ?? ""
+              }
               placeholder="Sélectionnez d'abord un employé"
               readOnly
             />
           </div>
+
 
           {/* Date */}
           <div className="space-y-2">

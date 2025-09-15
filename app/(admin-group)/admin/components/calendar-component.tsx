@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import api from "@/lib/api";
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
@@ -8,36 +9,6 @@ import CreateAppointmentDialog from "@/app/(admin-group)/admin/components/AddApp
 import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin-group)/admin/Types/appointment"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
-
-const employees: Employees[] = [
-  {
-    id: 1,
-    name: "Sophie Martin",
-    phone: 1234567890,
-    email: "sophie@example.com",
-    status: "active",
-    createdAt: "2024-01-01",
-    poste: "Coiffeuse",
-  },
-  {
-    id: 2,
-    name: "Pierre Durand",
-    phone: 9876543210,
-    email: "pierre@example.com",
-    status: "active",
-    createdAt: "2024-01-02",
-    poste: "Barbier",
-  },
-  {
-    id: 3,
-    name: "Marie Rousseau",
-    phone: 1122334455,
-    email: "marie@example.com",
-    status: "active",
-    createdAt: "2024-01-03",
-    poste: "Coloriste",
-  },
-]
 
 const events = [
   {
@@ -80,47 +51,89 @@ export function CalendarComponent() {
   const [view, setView] = useState<"day" | "week">("day")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
-  const [users, setUsers] = useState<User[]>([
-    { id: 1, name: "Marie Dubois", phone: 1234567890 },
-    { id: 2, name: "Jean Martin", phone: 9876543210 },
-    { id: 3, name: "Anna Leroy", phone: 1122334455 },
-    { id: 4, name: "Paul Durand", phone: 1122334455 },
-  ])
 
-  const [services, setServices] = useState<Service[]>([
-    { id: 1, name: "Coupe + Brushing", price: 100 },
-    { id: 2, name: "Barbe + Moustache", price: 900 },
-    { id: 3, name: "Coloration complète", price: 100 },
-    { id: 4, name: "Coupe Homme", price: 1400 },
-  ])
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
+  const [services, setServices] = useState<Service[]>([]);
+  const [employees, setEmployes] = useState<Employees[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+
+
+
+  useEffect(() => {
+    // Récupère les services depuis l'API
+    const fetchServices = async () => {
+      try {
+        const { data } = await api.get("/api/services");
+
+        console.log("Services from API:", data);
+        setServices(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des services:", err);
+      }
+    };
+
+    const fetchEmployes = async () => {
+      try {
+        const { data } = await api.get("/api/employes");
+
+        console.log("Employes from API:", data);
+        setEmployes(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des employes:", err);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const { data } = await api.get("/api/clients");
+
+        console.log("clients from API:", data);
+        setUsers(data);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des :", err);
+      }
+    };
+
+    fetchServices();
+    fetchEmployes();
+    fetchUsers();
+  }, []);
 
   const handleSaveAppointment = async (data: AppointmentFormType) => {
     try {
+      // Préparer uniquement les champs nécessaires pour l'API
+      const filteredData = {
+        service_id: data.service?.id,
+        client_id: data.user?.id,
+        employe_id: data.employee?.id ?? null,
+        date: data.date,
+        heure: data.time,
+        note: data.notes || "",
+        mode_paiement: 'especes', // ou data.mode_paiement
+      };
+
+
       if (selectedAppointment) {
-        console.log("Mise à jour du rendez-vous :", data)
-        // 🔁 appel API pour modifier
-        // await updateAppointmentAPI(data)
+        console.log("Mise à jour du rendez-vous filterdata :", filteredData);
+        // appel API pour modifier
+        // data.id correspond à l'id du rendez-vous à modifier
+        await api.put(`/api/appointments/${data.id}`, filteredData);
 
-        // Afficher la notification de succès
-        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`)
-
+        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`);
       } else {
-        console.log("Création d'un nouveau rendez-vous :", data)
-        // 🔁 appel API pour ajouter
-        // await createAppointmentAPI(data)
+        console.log("Création d'un nouveau rendez-vous filterdata:", filteredData);
+        // appel API pour ajouter
+        await api.post("/api/appointments", filteredData);
 
-        // Afficher la notification de succès
-        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`)
+        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`);
       }
 
-      setSelectedAppointment(null)
-
+      setSelectedAppointment(null);
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde :", error)
-      // Ici vous pourriez aussi créer une notification d'erreur
+      console.error("Erreur lors de la sauvegarde :", error);
+      // Notification d'erreur possible ici
     }
-  }
+  };
 
 
   const formatDate = (date: Date) =>

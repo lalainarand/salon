@@ -50,7 +50,6 @@ export default function Header() {
     const fetchServices = async () => {
       try {
         ;
-        const token = localStorage.getItem("token");
 
         const { data } = await api.get("/api/services");
 

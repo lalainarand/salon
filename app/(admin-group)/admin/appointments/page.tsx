@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import api from "@/lib/api";
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,194 +15,6 @@ import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
-
-
-const users = [
-  { id: 1, name: "Marie Dubois", phone: 1234567890 },
-  { id: 2, name: "Jean Martin", phone: 9876543210 },
-  { id: 3, name: "Anna Leroy", phone: 1122334455 },
-  { id: 4, name: "Paul Durand", phone: 1122334455 },
-]
-
-
-
-const services = [
-  { id: 1, name: "Coupe + Brushing", price: 100 },
-  { id: 2, name: "Barbe + Moustache", price: 900 },
-  { id: 3, name: "Coloration complète", price: 100 },
-  { id: 4, name: "Coupe Homme", price: 1400 },
-]
-
-const employees: Employees[] = [
-  {
-    id: 1,
-    name: "Sophie Martin",
-    phone: 1234567890,
-    email: "sophie@example.com",
-    status: "active",
-    createdAt: "2024-01-01",
-    poste: "Coiffeuse",
-  },
-  {
-    id: 2,
-    name: "Pierre Durand",
-    phone: 9876543210,
-    email: "pierre@example.com",
-    status: "active",
-    createdAt: "2024-01-02",
-    poste: "Barbier",
-  },
-  {
-    id: 3,
-    name: "Marie Rousseau",
-    phone: 1122334455,
-    email: "marie@example.com",
-    status: "active",
-    createdAt: "2024-01-03",
-    poste: "Coloriste",
-  },
-]
-
-
-const appointments: AppointmentFormType[] = [
-  {
-    id: 1,
-    user: {
-      id: 1,
-      name: "Marie Dubois",
-      phone: 1122334455,
-      email: "marie@example.com",
-      status: "active",
-      createdAt: "2024-01-01",
-    },
-    service: {
-      id: 1,
-      name: "Coupe + Brushing",
-      description: "",
-      price: 65,
-      duration: "1h30",
-      categoryId: 1,
-      status: "active",
-    },
-    employee: {
-      id: 1,
-      name: "Sophie Martin",
-      phone: 1234567890,
-      email: "sophie@example.com",
-      status: "active",
-      createdAt: "2024-01-01",
-      poste: "Coiffeuse",
-    },
-    date: "2024-01-15",
-    time: "09:00",
-    duration: "1h30",
-    status: "confirmed",
-    notes: "Première visite",
-  },
-  {
-    id: 2,
-    user: {
-      id: 2,
-      name: "Jean Martin",
-      phone: 1122334455,
-      email: "jean@example.com",
-      status: "active",
-      createdAt: "2024-01-02",
-    },
-    service: {
-      id: 2,
-      name: "Barbe + Moustache",
-      description: "",
-      price: 35,
-      duration: "45min",
-      categoryId: 2,
-      status: "active",
-    },
-    employee: {
-      id: 2,
-      name: "Pierre Durand",
-      phone: 1234567890,
-      email: "sophie@example.com",
-      status: "active",
-      createdAt: "2024-01-01",
-      poste: "Coiffeuse",
-    }
-    ,
-    date: "2024-01-15",
-    time: "10:30",
-    duration: "45min",
-    status: "pending",
-    notes: "",
-  },
-  {
-    id: 3,
-    user: {
-      id: 3,
-      name: "Anna Leroy",
-      phone: 1122334455,
-      email: "anna@example.com",
-      status: "active",
-      createdAt: "2024-01-03",
-    },
-    service: {
-      id: 3,
-      name: "Coloration complète",
-      description: "",
-      price: 120,
-      duration: "2h30",
-      categoryId: 3,
-      status: "active",
-    },
-    employee: {
-      id: 3,
-      name: "Marie Rousseau",
-      phone: 1234567890,
-      email: "sophie@example.com",
-      status: "active",
-      createdAt: "2024-01-01",
-      poste: "Coiffeuse",
-    },
-    date: "2024-01-15",
-    time: "14:00",
-    duration: "2h30",
-    status: "completed",
-    notes: "Couleur châtain clair",
-  },
-  {
-    id: 4,
-    user: {
-      id: 4,
-      name: "Paul Durand",
-      phone: 1122334455,
-      email: "paul@example.com",
-      status: "active",
-      createdAt: "2024-01-04",
-    },
-    service: {
-      id: 4,
-      name: "Coupe Homme",
-      description: "",
-      price: 25,
-      duration: "30min",
-      categoryId: 4,
-      status: "active",
-    },
-    employee: {
-      id: 4,
-      name: "Sophie Martin",
-      phone: 1234567890,
-      email: "sophie@example.com",
-      status: "active",
-      createdAt: "2024-01-01",
-      poste: "Coiffeuse",
-    },
-    date: "2024-01-15",
-    time: "16:00",
-    duration: "30min",
-    status: "cancelled",
-    notes: "Annulé par le client",
-  },
-]
 
 
 const getStatusLabel = (status: string) => {
@@ -218,15 +31,13 @@ const getStatusLabel = (status: string) => {
 
 const getStatusBadge = (status: string) => {
   const statusConfig = {
-    pending: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
-    confirmed: { label: "Confirmé", className: "bg-green-100 text-green-800" },
-    completed: { label: "Terminé", className: "bg-blue-100 text-blue-800" },
-    cancelled: { label: "Annulé", className: "bg-red-100 text-red-800" },
-    modified: { label: "Modifié", className: "bg-purple-100 text-purple-800" },
-    rescheduled: { label: "Reporté", className: "bg-orange-100 text-orange-800" },
+    en_attente: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
+    confirmé: { label: "Confirmé", className: "bg-green-100 text-green-800" },
+    terminé: { label: "Terminé", className: "bg-blue-100 text-blue-800" },
+    annulé: { label: "Annulé", className: "bg-red-100 text-red-800" },
   }
 
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
+  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.en_attente
   return <Badge className={config.className}>{config.label}</Badge>
 }
 
@@ -239,40 +50,153 @@ export default function AppointmentsPage() {
   const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<AppointmentFormType | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentFormType | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
-
-
+  const [services, setServices] = useState<Service[]>([]);
+  const [employees, setEmployes] = useState<Employees[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [nextStatus, setNextStatus] = useState<string>("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [appointments, setAppointments] = useState<AppointmentFormType[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const perPage = 10; // rendez-vous par page
+
+  // Récupération des services
+  const fetchServices = async () => {
+    try {
+      const { data } = await api.get("/api/services");
+      setServices(data);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des services:", err);
+    }
+  };
+
+  // Récupération des employés
+  const fetchEmployes = async () => {
+    try {
+      const { data } = await api.get("/api/employes");
+      console.log('liste des employes', data);
+      setEmployes(data);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des employés:", err);
+    }
+  };
+
+  // Récupération des clients
+  const fetchUsers = async () => {
+    try {
+      const { data } = await api.get("/api/clients");
+      setUsers(data);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des clients:", err);
+    }
+  };
+
+  // Récupération des rendez-vous avec pagination
+  const fetchAppointments = async (page: number = 1) => {
+    try {
+      const { data } = await api.get("/api/appointments", {
+        params: { page, perPage },
+      });
+
+      console.log('liste des rdv', data)
+
+      // Mapping pour correspondre à AppointmentFormType
+      const mappedAppointments: AppointmentFormType[] = data.data.map((a: any) => ({
+        id: a.id,
+        user: a.client
+          ? {
+            id: a.client.id,
+            name: a.client.name,
+            phone: a.client.phone,
+            email: a.client.email,
+            status: "active",
+            createdAt: a.client.created_at,
+          }
+          : null,
+        service: a.service
+          ? {
+            id: a.service.id,
+            nom: a.service.nom,
+            description: a.service.description,
+            prix: Number(a.service.prix),
+            duration: `${a.service.duree_minutes} min`,
+            categoryId: a.service.categorie_id,
+            status: "active",
+          }
+          : null,
+        employee: a.employe
+          ? {
+            id: a.employe.id,
+            name: a.employe?.user?.name,
+            phone: a.employe?.user?.phone,
+            email: a.employe?.user?.email,
+            poste: a.employe.poste ?? "",
+            status: "active",
+            createdAt: a.employe.created_at,
+          }
+          : null,
+        date: a.date,
+        time: a.heure,
+        duration: a.service ? `${a.service.duree_minutes} min` : "60 min",
+        status: a.status,
+        notes: a.notes || "",
+      }));
+
+      setAppointments(mappedAppointments);
+      setCurrentPage(data.current_page);
+      setTotalPages(data.last_page);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des rendez-vous:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchServices();
+    fetchEmployes();
+    fetchUsers();
+    fetchAppointments(1); // récupère la première page au montage
+  }, []);
 
 
 
   const handleSaveAppointment = async (data: AppointmentFormType) => {
     try {
+      // Préparer uniquement les champs nécessaires pour l'API
+      const filteredData = {
+        service_id: data.service?.id,
+        client_id: data.user?.id,
+        employe_id: data.employee?.employe?.id ?? null,
+        date: data.date,
+        heure: data.time,
+        notes: data.notes || "",
+        mode_paiement: 'especes', // ou data.mode_paiement
+      };
+
+      console.log('data', data);
+      console.log('filterdata', filteredData);
+
       if (selectedAppointment) {
-        console.log("Mise à jour du rendez-vous :", data)
-        // 🔁 appel API pour modifier
-        // await updateAppointmentAPI(data)
-
-        // Afficher la notification de succès
-        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`)
-
+        // Mise à jour d'un rendez-vous existant
+        await api.put(`/api/appointments/${data.id}`, filteredData);
+        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`);
       } else {
-        console.log("Création d'un nouveau rendez-vous :", data)
-        // 🔁 appel API pour ajouter
-        // await createAppointmentAPI(data)
-
-        // Afficher la notification de succès
-        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`)
+        // Création d'un nouveau rendez-vous
+        await api.post("/api/appointments", filteredData);
+        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`);
       }
 
-      setSelectedAppointment(null)
+      // Réinitialiser la sélection et fermer la modal
+      setSelectedAppointment(null);
+      setIsDialogOpen(false);
+
+      // Rafraîchir la liste des rendez-vous en conservant la page actuelle
+      await fetchAppointments(currentPage);
 
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde :", error)
-      // Ici vous pourriez aussi créer une notification d'erreur
+      console.error("Erreur lors de la sauvegarde :", error);
+      // Ici tu peux afficher une notification d'erreur si tu veux
     }
-  }
-
+  };
 
 
 
@@ -280,7 +204,7 @@ export default function AppointmentsPage() {
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
       appointment.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.service?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      appointment.service?.nom.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus =
       statusFilter === "all" || appointment.status === statusFilter
@@ -290,9 +214,9 @@ export default function AppointmentsPage() {
 
 
   const getNextStatus = (current: string) => {
-    const order = ["pending", "confirmed", "completed", "cancelled"]
+    const order = ["en_attente", "confirmé", "terminé", "annulé"]
     const index = order.indexOf(current)
-    return order[(index + 1) % order.length] || "pending"
+    return order[(index + 1) % order.length] || "en_attente"
   }
 
 
@@ -300,8 +224,6 @@ export default function AppointmentsPage() {
     setSelectedAppointmentId(id)
     setOpenDeleteDialog(true)
   }
-
-
 
   const handleStatusClick = (appointment: AppointmentFormType) => {
     setSelectedAppointmentForStatus(appointment)
@@ -335,19 +257,26 @@ export default function AppointmentsPage() {
 
 
   const handleConfirmDelete = async () => {
-    if (selectedAppointmentId === null) return
+    if (selectedAppointmentId === null) return;
+
     try {
-      // 🔥 Appel API ici
-      console.log("Supprimer rendez-vous avec ID:", selectedAppointmentId)
+      console.log("Supprimer rendez-vous avec ID:", selectedAppointmentId);
 
-      // TODO: revalidation/mutation/refresh
+      const { data } = await api.delete(`/api/appointments/${selectedAppointmentId}`);
 
-      setOpenDeleteDialog(false)
-      setSelectedAppointmentId(null)
+      // On récupère le message du backend si dispo
+      showSuccess(data?.message || "Rendez-vous supprimé avec succès");
+
+      // Rafraîchit la liste
+      await fetchAppointments(currentPage);
+
+      // Ferme le dialog + reset l'état
+      setOpenDeleteDialog(false);
+      setSelectedAppointmentId(null);
     } catch (error) {
-      console.error("Erreur lors de la suppression du rendez-vous", error)
+      console.error("Erreur lors de la suppression du rendez-vous", error);
     }
-  }
+  };
 
 
 
@@ -397,10 +326,10 @@ export default function AppointmentsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="pending">En attente</SelectItem>
-                <SelectItem value="confirmed">Confirmé</SelectItem>
-                <SelectItem value="completed">Terminé</SelectItem>
-                <SelectItem value="cancelled">Annulé</SelectItem>
+                <SelectItem value="en_attente">En attente</SelectItem>
+                <SelectItem value="confirmé">Confirmé</SelectItem>
+                <SelectItem value="terminé">Terminé</SelectItem>
+                <SelectItem value="annulé">Annulé</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -437,7 +366,7 @@ export default function AppointmentsPage() {
                         <p className="text-sm text-gray-500">{appointment.user?.phone}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{appointment.service?.name}</TableCell>
+                    <TableCell>{appointment.service?.nom}</TableCell>
                     <TableCell>{appointment.employee?.name}</TableCell>
                     <TableCell>
                       <div>
@@ -447,7 +376,7 @@ export default function AppointmentsPage() {
                     </TableCell>
                     <TableCell>{appointment.duration}</TableCell>
                     <TableCell className="font-medium">
-                      {appointment.service?.price}€
+                      {appointment.service?.prix}Ar
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -472,7 +401,7 @@ export default function AppointmentsPage() {
                             setIsDialogOpen(true)
                           }}
                         >
-                         <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                          <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
                         </Button>
 
                         <Button
@@ -488,8 +417,42 @@ export default function AppointmentsPage() {
                   </TableRow>
                 ))}
               </TableBody>
-
             </Table>
+
+            {/* Pagination */}
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                disabled={currentPage === 1}
+                style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+                onClick={() => fetchAppointments(currentPage - 1)}
+              >
+                ←
+              </Button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  style={{
+                    backgroundColor: page === currentPage ? "rgb(155,183,131)" : "white",
+                    color: page === currentPage ? "white" : "black",
+                    border: "1px solid rgb(155,183,131)",
+                  }}
+                  onClick={() => fetchAppointments(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+
+              <Button
+                disabled={currentPage === totalPages}
+                style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+                onClick={() => fetchAppointments(currentPage + 1)}
+              >
+                →
+              </Button>
+            </div>
+
+
             <ConfirmDeleteDialog
               open={openDeleteDialog}
               onOpenChange={setOpenDeleteDialog}

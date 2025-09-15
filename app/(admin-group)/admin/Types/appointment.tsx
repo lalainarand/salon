@@ -11,17 +11,27 @@ export interface User {
 export interface Employees {
   id: number
   name: string
-  phone: number
-  email?: string
-  status?: string
+  email: string
   createdAt?: string
-  poste: string
+  phone: number
+  role_id: number
+  created_at: string
+  updated_at: string
+  status: string
+  employe?: {
+    id: number
+    user_id: number
+    date_embauche: string
+    poste: string
+    horaire: string
+  } | null
 }
+
 
 export interface Service {
   id: number
-  name: string
-  price: number
+  nom: string
+  prix: number
   description?: string
   duration?: string
   categoryId?: number
@@ -36,6 +46,6 @@ export type AppointmentFormType = {
   date: string
   time: string
   duration: string
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "modified" | "rescheduled"
+  status: string
   notes?: string
 }
