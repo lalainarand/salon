@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import api from "@/lib/api"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,85 +10,38 @@ import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
 import { AddServiceDialog } from "@/app/(admin-group)/admin/components/AddServiceDialog"
-import { ServiceType, ServiceFormValues } from "@/app/(admin-group)/admin/components/AddServiceDialog"
+import { ServiceFormValues } from "@/app/(admin-group)/admin/components/AddServiceDialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Scissors, Clock, Euro } from "lucide-react"
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
-const services = [
-  {
-    id: 1,
-    name: "Coupe Femme",
-    category: "Coiffure",
-    description: "Coupe personnalisée avec shampoing et brushing",
-    duration: 60,
-    price: 45,
-    status: "active",
-    popularity: 85,
-  },
-  {
-    id: 2,
-    name: "Coloration Complète",
-    category: "Coloration",
-    description: "Coloration complète avec soin nourrissant",
-    duration: 120,
-    price: 80,
-    status: "active",
-    popularity: 70,
-  },
-  {
-    id: 3,
-    name: "Brushing",
-    category: "Coiffure",
-    description: "Brushing professionnel avec produits de qualité",
-    duration: 30,
-    price: 25,
-    status: "active",
-    popularity: 60,
-  },
-  {
-    id: 4,
-    name: "Coupe Homme",
-    category: "Coiffure",
-    description: "Coupe moderne avec finition à la tondeuse",
-    duration: 30,
-    price: 25,
-    status: "active",
-    popularity: 90,
-  },
-  {
-    id: 5,
-    name: "Barbe + Moustache",
-    category: "Barbier",
-    description: "Taille et mise en forme de la barbe",
-    duration: 45,
-    price: 35,
-    status: "active",
-    popularity: 75,
-  },
-  {
-    id: 6,
-    name: "Mèches",
-    category: "Coloration",
-    description: "Mèches avec technique au bonnet ou papier",
-    duration: 90,
-    price: 65,
-    status: "inactive",
-    popularity: 40,
-  },
-]
-
-const categories = ["Coiffure", "Coloration", "Barbier", "Soins", "Maquillage"]
-
-const getStatusBadge = (status: string) => {
-  return status === "active" ? (
-    <Badge className="bg-green-100 text-green-800">Actif</Badge>
-  ) : (
-    <Badge className="bg-gray-100 text-gray-800">Inactif</Badge>
-  )
+// --- Types ---
+interface ServiceType {
+  id: number
+  nom: string
+  description: string
+  duree_minutes: number
+  prix: string
+  statut: number
+  categorie_id: number
+  categorie: {
+    id: number
+    nom: string
+    description: string
+    couleur: string
+    statut: number
+  }
+  popularity?: number
 }
 
+interface CategoryType {
+  id: number
+  nom: string
+  couleur?: string
+}
+
+// --- Helpers ---
 const getPopularityColor = (popularity: number) => {
   if (popularity >= 80) return "text-green-600"
   if (popularity >= 60) return "text-yellow-600"
@@ -95,6 +49,7 @@ const getPopularityColor = (popularity: number) => {
 }
 
 export default function ServicesPage() {
+  const [services, setServices] = useState<ServiceType[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -103,33 +58,49 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null)
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
   const [pendingService, setPendingService] = useState<ServiceType | null>(null)
-  const [originalStatus, setOriginalStatus] = useState<"active" | "inactive" | null>(null)
+  const [originalStatus, setOriginalStatus] = useState<number | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const [categories, setCategories] = useState<{ id: number; nom: string }[]>([])
 
-
-  const handleDeleteClick = (id: number) => {
-    setSelectedServiceId(id)
-    setOpenDeleteDialog(true)
+  // --- Charger services ---
+  const fetchServices = async () => {
+    try {
+      const { data } = await api.get("/api/services")
+      // injecter une popularité aléatoire
+      const mapped = data.map((s: any) => ({
+        ...s,
+        popularity: Math.floor(Math.random() * 100),
+      }))
+      setServices(mapped)
+    } catch (err) {
+      console.error("Erreur lors de la récupération des services :", err)
+    }
   }
 
-  const handleToggleStatus = (service: ServiceType) => {
-    setPendingService(service)
-    setOriginalStatus(service.status as "active" | "inactive")
-    setToggleDialogOpen(true)
+  // --- Charger categories ---
+  const fetchCategories = async () => {
+    try {
+      const { data } = await api.get("/api/categories/index")
+      console.log('listes des categories', data)
+      setCategories(data)
+    } catch (err) {
+      console.error("Erreur lors du chargement des catégories", err)
+    }
   }
 
+  useEffect(() => {
+    fetchServices()
+    fetchCategories()
+  }, [])
+
+  // --- Toggle statut ---
   const confirmToggleStatus = async () => {
     if (!pendingService) return
 
     try {
-      const newStatus = pendingService.status === "active" ? "inactive" : "active"
-
-      // 🔥 Appel à ton API pour modifier le statut
-      console.log("Changement de statut pour ID", pendingService.id, "=>", newStatus)
-
-      // ✅ Optionnel : mise à jour locale ou revalidation
-      // revalidate(), mutate(), ou mise à jour manuelle du state si besoin
-
+      await api.put(`/api/services/changes/${pendingService.id}`)
+      showSuccess("Statut changé avec succès.")
+      fetchServices()
     } catch (error) {
       console.error("Erreur lors du changement de statut :", error)
     } finally {
@@ -139,22 +110,20 @@ export default function ServicesPage() {
     }
   }
 
-
-
+  // --- Sauvegarde (ajout / modif) ---
   const handleSaveService = async (data: ServiceFormValues) => {
     try {
       if (selectedService) {
-        // mode edit
-        console.log("Mise à jour du service", selectedService.id, data)
-        showSuccess(`Modification de  service ${data?.name} succès`)
-        // Appelle API update
+        await api.put(`/api/services/${selectedService.id}`, data)
+          console.log('modification des services',data)
+        showSuccess(`Modification du service succès`)
       } else {
-        // mode add
-        console.log("Création du service", data)
-        showSuccess(`Création de nouveau service ${data?.name} succès`)
-        // Appelle API create
+        await api.post(`/api/services/`, data)
+        console.log('creation des services',data)
+        showSuccess(`Création du service  succès`)
       }
 
+      fetchServices()
       setIsCreateDialogOpen(false)
       setSelectedService(null)
     } catch (error) {
@@ -162,27 +131,24 @@ export default function ServicesPage() {
     }
   }
 
-
+  // --- Suppression ---
   const handleConfirmDelete = async () => {
     if (selectedServiceId === null) return
     try {
-      // 🔥 Ici, appelle ta logique de suppression API ou mutation
-
-
-      // Optionnel : rafraîchir la liste, revalidation, etc.
-      showSuccess(`Suppression de service succès`)
-      // mutate(), fetch(), ou recharger depuis le parent
+      await api.delete(`/api/services/${selectedServiceId}`)
+      showSuccess("Service supprimé avec succès")
+      fetchServices()
     } catch (err) {
       console.error("Erreur lors de la suppression", err)
-
     }
   }
 
+  // --- Filtrage ---
   const filteredServices = services.filter((service) => {
     const matchesSearch =
-      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === "all" || service.category === categoryFilter
+    const matchesCategory = categoryFilter === "all" || service.categorie.nom === categoryFilter
     return matchesSearch && matchesCategory
   })
 
@@ -203,7 +169,6 @@ export default function ServicesPage() {
             Nouveau Service
           </Button>
         </div>
-
       </div>
 
       {/* Stats Cards */}
@@ -225,7 +190,7 @@ export default function ServicesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Services Actifs</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {services.filter((s) => s.status === "active").length}
+                  {services.filter((s) => s.statut === 1).length}
                 </p>
               </div>
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -240,7 +205,10 @@ export default function ServicesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prix Moyen</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(services.reduce((acc, s) => acc + s.price, 0) / services.length)}€
+                  {services.length > 0
+                    ? Math.round(services.reduce((acc, s) => acc + parseFloat(s.prix), 0) / services.length)
+                    : 0}
+                  €
                 </p>
               </div>
               <Euro className="w-8 h-8 text-[rgb(135,169,107)]" />
@@ -253,7 +221,10 @@ export default function ServicesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Durée Moyenne</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(services.reduce((acc, s) => acc + s.duration, 0) / services.length)}min
+                  {services.length > 0
+                    ? Math.round(services.reduce((acc, s) => acc + s.duree_minutes, 0) / services.length)
+                    : 0}
+                  min
                 </p>
               </div>
               <Clock className="w-8 h-8 text-[rgb(135,169,107)]" />
@@ -280,13 +251,13 @@ export default function ServicesPage() {
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue />
+                <SelectValue placeholder="Toutes les catégories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les catégories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.nom}>
+                    {c.nom}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -320,15 +291,15 @@ export default function ServicesPage() {
                   <TableRow key={service.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{service.name}</p>
+                        <p className="font-medium">{service.nom}</p>
                         <p className="text-sm text-gray-500">{service.description}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{service.category}</Badge>
+                      <Badge variant="outline">{service.categorie.nom}</Badge>
                     </TableCell>
-                    <TableCell>{service.duration} min</TableCell>
-                    <TableCell className="font-medium">{service.price}€</TableCell>
+                    <TableCell>{service.duree_minutes} min</TableCell>
+                    <TableCell className="font-medium">{service.prix}€</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -337,18 +308,21 @@ export default function ServicesPage() {
                             style={{ width: `${service.popularity}%` }}
                           ></div>
                         </div>
-                        <span className={`text-sm font-medium ${getPopularityColor(service.popularity)}`}>
+                        <span className={`text-sm font-medium ${getPopularityColor(service.popularity || 0)}`}>
                           {service.popularity}%
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Switch
-                        key={service.id + service.status}
-                        checked={service.status === "active"}
-                        onCheckedChange={() => handleToggleStatus(service)}
+                        key={service.id + service.statut}
+                        checked={service.statut === 1}
+                        onCheckedChange={() => {
+                          setPendingService(service)
+                          setOriginalStatus(service.statut)
+                          setToggleDialogOpen(true)
+                        }}
                       />
-
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -362,12 +336,14 @@ export default function ServicesPage() {
                         >
                           <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
                         </Button>
-
                         <Button
                           variant="ghost"
                           size="icon"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteClick(service.id)}
+                          onClick={() => {
+                            setSelectedServiceId(service.id)
+                            setOpenDeleteDialog(true)
+                          }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -376,16 +352,18 @@ export default function ServicesPage() {
                   </TableRow>
                 ))}
               </TableBody>
-              {/* 🗑️ Composant de confirmation de suppression */}
-              <ConfirmDeleteDialog
-                open={openDeleteDialog}
-                onOpenChange={setOpenDeleteDialog}
-                onConfirm={handleConfirmDelete}
-                title="Supprimer ce service ?"
-                description="Cette action est irréversible. Voulez-vous vraiment supprimer ce service ?"
-                toastMessage="Service supprimé avec succès."
-              />
             </Table>
+
+            {/* Dialogs */}
+            <ConfirmDeleteDialog
+              open={openDeleteDialog}
+              onOpenChange={setOpenDeleteDialog}
+              onConfirm={handleConfirmDelete}
+              title="Supprimer ce service ?"
+              description="Cette action est irréversible. Voulez-vous vraiment supprimer ce service ?"
+              toastMessage="Service supprimé avec succès."
+            />
+
             <AddServiceDialog
               open={isCreateDialogOpen}
               onOpenChange={(open) => {
@@ -397,32 +375,30 @@ export default function ServicesPage() {
               initialData={selectedService}
               onSubmit={handleSaveService}
             />
+
             <ConfirmToggleDialog
               open={toggleDialogOpen}
               onOpenChange={(open) => {
                 setToggleDialogOpen(open)
-                if (!open && pendingService && originalStatus) {
-                  // Revenir à l’état initial du switch si on a annulé
-                  const updatedList = [...services] // ou filteredServices selon ton state
-                  const index = updatedList.findIndex(s => s.id === pendingService.id)
+                if (!open && pendingService && originalStatus !== null) {
+                  const updatedList = [...services]
+                  const index = updatedList.findIndex((s) => s.id === pendingService.id)
                   if (index !== -1) {
-                    updatedList[index].status = originalStatus
-                    // Met à jour ton state si tu l’utilises
+                    updatedList[index].statut = originalStatus
+                    setServices(updatedList)
                   }
                 }
               }}
               onConfirm={confirmToggleStatus}
             />
 
-
-            {/* Composant de notification */}
+            {/* Notification */}
             <SuccessNotification
               show={notification.show}
               message={notification.message}
               onClose={hideNotification}
-              duration={4000} // 4 secondes
+              duration={4000}
             />
-
           </div>
         </CardContent>
       </Card>

@@ -18,9 +18,12 @@ import { Button } from "@/components/ui/button"
 
 export interface CategoryType {
   id?: number
-  name: string
+  nom: string
   description: string
-  color: string
+  couleur: string
+  statut: number // 1 = actif, 0 = inactif
+  created_at?: string
+  updated_at?: string
 }
 
 interface AddEditCategoryDialogProps {
@@ -37,14 +40,23 @@ export default function AddEditCategoryDialog({
   initialData = null,
 }: AddEditCategoryDialogProps) {
   const [formData, setFormData] = useState<CategoryType>({
-    name: "",
+    nom: "",
     description: "",
-    color: "#8B4513",
+    couleur: "#8B4513",
+    statut: 1,
   })
 
   useEffect(() => {
-    if (initialData) setFormData(initialData)
-    else setFormData({ name: "", description: "", color: "#8B4513" })
+    if (initialData) {
+      setFormData(initialData)
+    } else {
+      setFormData({
+        nom: "",
+        description: "",
+        couleur: "#8B4513",
+        statut: 1,
+      })
+    }
   }, [initialData])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -64,7 +76,9 @@ export default function AddEditCategoryDialog({
         <DialogOverlay className="bg-black/30 backdrop-blur-sm fixed inset-0 z-40" />
         <DialogContent className="max-w-lg bg-white z-50">
           <DialogHeader>
-            <DialogTitle>{isEdit ? "Modifier la catégorie" : "Créer une nouvelle catégorie"}</DialogTitle>
+            <DialogTitle>
+              {isEdit ? "Modifier la catégorie" : "Créer une nouvelle catégorie"}
+            </DialogTitle>
             <DialogDescription>
               {isEdit
                 ? "Modifiez les informations de la catégorie."
@@ -73,16 +87,18 @@ export default function AddEditCategoryDialog({
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Nom */}
             <div className="space-y-2">
-              <Label htmlFor="name">Nom de la catégorie</Label>
+              <Label htmlFor="nom">Nom de la catégorie</Label>
               <Input
-                name="name"
-                value={formData.name}
+                name="nom"
+                value={formData.nom}
                 onChange={handleChange}
                 placeholder="Ex: Coiffure, Coloration..."
               />
             </div>
 
+            {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -93,24 +109,32 @@ export default function AddEditCategoryDialog({
               />
             </div>
 
+            {/* Couleur */}
             <div className="space-y-2">
-              <Label htmlFor="color">Couleur</Label>
+              <Label htmlFor="couleur">Couleur</Label>
               <div className="flex items-center gap-3">
                 <Input
-                  name="color"
+                  name="couleur"
                   type="color"
-                  value={formData.color}
+                  value={formData.couleur}
                   onChange={handleChange}
                   className="w-16 h-10"
                 />
-                <span className="text-sm text-gray-600">Choisissez une couleur pour identifier la catégorie</span>
+                <span className="text-sm text-gray-600">
+                  Choisissez une couleur pour identifier la catégorie
+                </span>
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-            <Button className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90" onClick={handleSubmit}>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Annuler
+            </Button>
+            <Button
+              className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+              onClick={handleSubmit}
+            >
               {isEdit ? "Enregistrer les modifications" : "Créer la catégorie"}
             </Button>
           </DialogFooter>

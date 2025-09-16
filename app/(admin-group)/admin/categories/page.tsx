@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import api from "@/lib/api"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,73 +12,18 @@ import AddEditCategoryDialog from "@/app/(admin-group)/admin/components/AddEditC
 import { Plus, Search, Edit, Trash2, Tag, Palette } from "lucide-react"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
-const categories = [
-  {
-    id: 1,
-    name: "Coiffure",
-    description: "Services de coupe, brushing et coiffage",
-    color: "#8B4513",
-    servicesCount: 8,
-    status: "active",
-    createdAt: "2023-01-15",
-  },
-  {
-    id: 2,
-    name: "Coloration",
-    description: "Colorations, mèches, balayages et décolorations",
-    color: "#FF6B6B",
-    servicesCount: 6,
-    status: "active",
-    createdAt: "2023-01-15",
-  },
-  {
-    id: 3,
-    name: "Barbier",
-    description: "Services spécialisés pour hommes",
-    color: "#4ECDC4",
-    servicesCount: 4,
-    status: "active",
-    createdAt: "2023-02-10",
-  },
-  {
-    id: 4,
-    name: "Soins",
-    description: "Soins capillaires et traitements",
-    color: "#45B7D1",
-    servicesCount: 5,
-    status: "active",
-    createdAt: "2023-03-05",
-  },
-  {
-    id: 5,
-    name: "Maquillage",
-    description: "Services de maquillage et beauté",
-    color: "#F39C12",
-    servicesCount: 3,
-    status: "inactive",
-    createdAt: "2023-04-20",
-  },
-  {
-    id: 6,
-    name: "Épilation",
-    description: "Services d'épilation et esthétique",
-    color: "#E74C3C",
-    servicesCount: 7,
-    status: "active",
-    createdAt: "2023-05-12",
-  },
-]
-
 type CategoryType = {
-  id?: number
-  name: string
+  id: number
+  nom: string
   description: string
-  color: string
+  couleur: string
+  statut: number // 1 = actif, 0 = inactif
+  created_at: string
+  updated_at: string
 }
 
-
-const getStatusBadge = (status: string) => {
-  return status === "active" ? (
+const getStatusBadge = (statut: number) => {
+  return statut === 1 ? (
     <Badge className="bg-green-100 text-green-800">Active</Badge>
   ) : (
     <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
@@ -88,61 +34,85 @@ export default function CategoriesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(null)
-  const [categoriesState, setCategoriesState] = useState(categories)
+  const [categoriesState, setCategoriesState] = useState<CategoryType[]>([])
   const [dialogOpenId, setDialogOpenId] = useState<number | null>(null)
   const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
-  const [statusMap, setStatusMap] = useState<Map<number, string>>(
-    new Map(categories.map((c) => [c.id, c.status]))
-  )
 
-  const handleToggleStatus = (categoryId: number) => {
-    setStatusMap((prev) => {
-      const newMap = new Map(prev)
-      const current = newMap.get(categoryId)
-      newMap.set(categoryId, current === "active" ? "inactive" : "active")
-      return newMap
-    })
+  // Charger depuis API
+  const fetchCategories = async () => {
+    try {
+      const { data } = await api.get("/api/categories/index")
+      setCategoriesState(data)
+    } catch (err) {
+      console.error("Erreur lors du chargement des catégories :", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  // Toggle statut
+  const handleToggleStatus = async (category: CategoryType) => {
+    try {
+      await api.put(`/api/categories/change/${category.id}`, {
+        statut: category.statut === 1 ? 0 : 1,
+      })
+      showSuccess(`Statut de "${category.nom}" mis à jour avec succès`)
+      fetchCategories()
+    } catch (err) {
+      console.error("Erreur lors du changement de statut :", err)
+    }
     setDialogOpenId(null)
   }
 
+  // Suppression
   const handleDeleteCategory = async (id: number) => {
-    // await axios.delete(`/api/categories/${id}`)
-    setCategoriesState((prev) => prev.filter((c) => c.id !== id))
-    showSuccess(`Suppression categorie succès`)
+    try {
+      await api.delete(`/api/categories/${id}`)
+      setCategoriesState((prev) => prev.filter((c) => c.id !== id))
+      showSuccess("Suppression catégorie succès")
+    } catch (err) {
+      console.error("Erreur lors de la suppression :", err)
+    }
+    setDialogDeleteId(null)
   }
 
-  const handleSaveCategory = (data: CategoryType) => {
+  // Sauvegarde (ajout / modif)
+  const handleSaveCategory = async (data: Partial<CategoryType>) => {
     if (data.id) {
       // MODIFICATION
-      setCategoriesState((prev) =>
-        prev.map((cat) => (cat.id === data.id ? { ...cat, ...data } : cat))
-      )
-      showSuccess(`Modification categorie ${data?.name} succès`)
+      try {
+        await api.put(`/api/categories/${data.id}`, data)
+        showSuccess(`Modification catégorie ${data.nom} succès`)
+        fetchCategories()
+      } catch (err) {
+        console.error("Erreur lors de la modification :", err)
+      }
     } else {
       // AJOUT
-      const newCategory = {
-        ...data,
-        id: Date.now(), // ou géré par backend
-        createdAt: new Date().toISOString(),
-        servicesCount: 0,
-        status: "active",
+      try {
+        await api.post("/api/categories", data)
+        showSuccess(`Création catégorie ${data.nom} succès`)
+        fetchCategories()
+      } catch (err) {
+        console.error("Erreur lors de la création :", err)
       }
-      setCategoriesState((prev) => [newCategory, ...prev])
-      showSuccess(`Création categorie ${data?.name} succès`)
     }
     setIsDialogOpen(false)
+    setSelectedCategory(null)
   }
-  const handleCreateUser = () => {
+
+  const handleCreateCategory = () => {
     setSelectedCategory(null)
     setIsDialogOpen(true)
   }
 
-  const handleEditUser = (categories: any) => {
-    setSelectedCategory(categories)
+  const handleEditCategory = (category: CategoryType) => {
+    setSelectedCategory(category)
     setIsDialogOpen(true)
   }
-
 
   return (
     <div className="space-y-6">
@@ -153,7 +123,7 @@ export default function CategoriesPage() {
           <p className="text-gray-600 mt-1">Organisez vos services par catégories</p>
         </div>
         <Button
-          onClick={handleCreateUser}
+          onClick={handleCreateCategory}
           className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -168,7 +138,7 @@ export default function CategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Catégories</p>
-                <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{categoriesState.length}</p>
               </div>
               <Tag className="w-8 h-8 text-[rgb(135,169,107)]" />
             </div>
@@ -180,7 +150,7 @@ export default function CategoriesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Catégories Actives</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {[...statusMap.values()].filter((s) => s === "active").length}
+                  {categoriesState.filter((c) => c.statut === 1).length}
                 </p>
               </div>
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -195,7 +165,8 @@ export default function CategoriesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Services Total</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {categories.reduce((acc, c) => acc + c.servicesCount, 0)}
+                  {/* Ici, si l’API renvoie pas les servicesCount il faut l’ajouter */}
+                  {0}
                 </p>
               </div>
               <Palette className="w-8 h-8 text-[rgb(135,169,107)]" />
@@ -207,9 +178,7 @@ export default function CategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Moy. Services/Cat.</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(categories.reduce((acc, c) => acc + c.servicesCount, 0) / categories.length)}
-                </p>
+                <p className="text-2xl font-bold text-gray-900">0</p>
               </div>
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-bold text-sm">=</span>
@@ -242,89 +211,89 @@ export default function CategoriesPage() {
         {categoriesState
           .filter(
             (category) =>
-              category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              category.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
               category.description.toLowerCase().includes(searchTerm.toLowerCase())
-          ).map((category) => {
-            const currentStatus = statusMap.get(category.id) || "inactive"
-            return (
-              <Card key={category.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                        style={{ backgroundColor: category.color }}
-                      ></div>
-                      <CardTitle className="text-lg">{category.name}</CardTitle>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(currentStatus)}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDialogOpenId(category.id)}
-                        className="text-xs text-muted-foreground hover:text-primary"
-                      >
-                        Changer
-                      </Button>
-                    </div>
+          )
+          .map((category) => (
+            <Card key={category.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                      style={{ backgroundColor: category.couleur }}
+                    ></div>
+                    <CardTitle className="text-lg">{category.nom}</CardTitle>
                   </div>
-                  <CardDescription>{category.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Services</span>
-                      <Badge variant="outline">{category.servicesCount}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Créée le</span>
-                      <span className="text-sm">{new Date(category.createdAt).toLocaleDateString("fr-FR")}</span>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditUser(category)}
-                      >
-                        <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => setDialogDeleteId(category.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(category.statut)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDialogOpenId(category.id)}
+                      className="text-xs text-muted-foreground hover:text-primary"
+                    >
+                      Changer
+                    </Button>
                   </div>
-                </CardContent>
+                </div>
+                <CardDescription>{category.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Créée le</span>
+                    <span className="text-sm">
+                      {new Date(category.created_at).toLocaleDateString("fr-FR")}
+                    </span>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditCategory(category)}
+                    >
+                      <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => setDialogDeleteId(category.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
 
-                <ConfirmDeleteDialog
-                  open={dialogDeleteId === category.id}
-                  onOpenChange={(open) => !open && setDialogDeleteId(null)}
-                  onConfirm={() => handleDeleteCategory(category.id)}
-                  title={`Supprimer la catégorie "${category.name}" ?`}
-                  description="Cette action est irréversible. Êtes-vous sûr(e) ?"
-                  toastMessage="Catégorie supprimée avec succès."
-                />
+              {/* Dialog suppression */}
+              <ConfirmDeleteDialog
+                open={dialogDeleteId === category.id}
+                onOpenChange={(open) => !open && setDialogDeleteId(null)}
+                onConfirm={() => handleDeleteCategory(category.id)}
+                title={`Supprimer la catégorie "${category.nom}" ?`}
+                description="Cette action est irréversible. Êtes-vous sûr(e) ?"
+                toastMessage="Catégorie supprimée avec succès."
+              />
 
-                <ConfirmToggleDialog
-                  open={dialogOpenId === category.id}
-                  onOpenChange={(open) => setDialogOpenId(open ? category.id : null)}
-                  onConfirm={() => handleToggleStatus(category.id)}
-                  title="Changer le statut de la catégorie"
-                  description={`Souhaitez-vous vraiment ${currentStatus === "active" ? "désactiver" : "activer"
-                    } cette catégorie ?`}
-                  confirmLabel="Confirmer"
-                />
-              </Card>
-            )
-
-          })}
+              {/* Dialog toggle statut */}
+              <ConfirmToggleDialog
+                open={dialogOpenId === category.id}
+                onOpenChange={(open) => setDialogOpenId(open ? category.id : null)}
+                onConfirm={() => handleToggleStatus(category)}
+                title="Changer le statut de la catégorie"
+                description={`Souhaitez-vous vraiment ${
+                  category.statut === 1 ? "désactiver" : "activer"
+                } cette catégorie ?`}
+                confirmLabel="Confirmer"
+              />
+            </Card>
+          ))}
       </div>
+
+      {/* Modal ajout / modif */}
       <AddEditCategoryDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -332,16 +301,13 @@ export default function CategoriesPage() {
         onSubmit={handleSaveCategory}
       />
 
-      {/* Composant de notification */}
+      {/* Notification */}
       <SuccessNotification
         show={notification.show}
         message={notification.message}
         onClose={hideNotification}
-        duration={4000} // 4 secondes
+        duration={4000}
       />
-
-      
     </div>
-
   )
 }

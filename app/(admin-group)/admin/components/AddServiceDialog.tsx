@@ -22,27 +22,39 @@ import {
 } from "@/components/ui/select"
 
 export interface ServiceFormValues {
-  name: string
-  category: string
-  duration: number
-  price: number
+  id?: number
+  nom: string
+  categorie_id: number
+  duree_minutes: number
+  prix: number
   description: string
 }
 
 export interface ServiceType extends ServiceFormValues {
-  id: number
-  status: string  
+  statut: number
   popularity: number
+  categorie?: {
+    id: number
+    nom: string
+    couleur?: string
+  }
+}
+
+export interface CategoryType {
+  id: number
+  nom: string
+  couleur?: string
 }
 
 interface AddServiceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: ServiceFormValues) => void
-  categories: string[]
+  categories: CategoryType[]
   mode?: "add" | "edit"
   initialData?: ServiceType | null
 }
+
 
 export const AddServiceDialog = ({
   open,
@@ -53,28 +65,30 @@ export const AddServiceDialog = ({
   initialData,
 }: AddServiceDialogProps) => {
   const [formData, setFormData] = useState<ServiceFormValues>({
-    name: "",
-    category: "",
-    duration: 0,
-    price: 0,
+    nom: "",
+    categorie_id: 0,
+    duree_minutes: 0,
+    prix: 0,
     description: "",
   })
 
+  // ✅ Préremplir en mode "edit"
   useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name || "",
-        category: initialData.category || "",
-        duration: initialData.duration || 0,
-        price: initialData.price || 0,
+        id: initialData.id,
+        nom: initialData.nom || "",
+        categorie_id: initialData.categorie_id || 0,
+        duree_minutes: initialData.duree_minutes || 0,
+        prix: Number(initialData.prix) || 0,
         description: initialData.description || "",
       })
     } else {
       setFormData({
-        name: "",
-        category: "",
-        duration: 0,
-        price: 0,
+        nom: "",
+        categorie_id: 0,
+        duree_minutes: 0,
+        prix: 0,
         description: "",
       })
     }
@@ -102,54 +116,64 @@ export const AddServiceDialog = ({
               : "Ajoutez un nouveau service à votre catalogue."}
           </DialogDescription>
         </DialogHeader>
+
         <div className="grid grid-cols-2 gap-4 py-4">
+          {/* Nom */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nom du service</Label>
+            <Label htmlFor="nom">Nom du service</Label>
             <Input
-              id="name"
+              id="nom"
               placeholder="Ex: Coupe + Brushing"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
+              value={formData.nom}
+              onChange={(e) => handleChange("nom", e.target.value)}
             />
           </div>
+
+          {/* Catégorie */}
           <div className="space-y-2">
-            <Label htmlFor="category">Catégorie</Label>
+            <Label htmlFor="categorie_id">Catégorie</Label>
             <Select
-              value={formData.category}
-              onValueChange={(value) => handleChange("category", value)}
+              value={formData.categorie_id ? String(formData.categorie_id) : ""}
+              onValueChange={(value) => handleChange("categorie_id", Number(value))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une catégorie" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={String(cat.id)}>
+                    {cat.nom}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Durée */}
           <div className="space-y-2">
-            <Label htmlFor="duration">Durée (minutes)</Label>
+            <Label htmlFor="duree_minutes">Durée (minutes)</Label>
             <Input
-              id="duration"
+              id="duree_minutes"
               type="number"
               placeholder="60"
-              value={formData.duration}
-              onChange={(e) => handleChange("duration", Number(e.target.value))}
+              value={formData.duree_minutes}
+              onChange={(e) => handleChange("duree_minutes", Number(e.target.value))}
             />
           </div>
+
+          {/* Prix */}
           <div className="space-y-2">
-            <Label htmlFor="price">Prix (€)</Label>
+            <Label htmlFor="prix">Prix (Ar)</Label>
             <Input
-              id="price"
+              id="prix"
               type="number"
               placeholder="45"
-              value={formData.price}
-              onChange={(e) => handleChange("price", Number(e.target.value))}
+              value={formData.prix}
+              onChange={(e) => handleChange("prix", Number(e.target.value))}
             />
           </div>
+
+          {/* Description */}
           <div className="col-span-2 space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -160,6 +184,7 @@ export const AddServiceDialog = ({
             />
           </div>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
