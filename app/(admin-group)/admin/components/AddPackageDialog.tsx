@@ -14,21 +14,27 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 
-export type PackageType = {
+// Type des services avec id et nom pour manipulation côté API
+export interface ServiceOption {
   id: number
-  name: string
-  price: number
-  services: string[]
-  active: boolean
+  nom: string
+}
+
+export interface PackageType {
+  id: number
+  nom: string
+  prix: number
+  services: ServiceOption[]
+  statut: boolean
 }
 
 interface AddPackageDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: Omit<PackageType, "id" | "active">) => void
+  onSubmit: (data: Omit<PackageType, "id" | "statut">) => void
   initialData?: PackageType | null
   mode?: "add" | "edit"
-  allServices: string[]
+  allServices: ServiceOption[]
 }
 
 export default function AddPackageDialog({
@@ -41,12 +47,13 @@ export default function AddPackageDialog({
 }: AddPackageDialogProps) {
   const [name, setName] = useState("")
   const [price, setPrice] = useState<number>(0)
-  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [selectedServices, setSelectedServices] = useState<ServiceOption[]>([])
 
+  // Pré-remplir les champs si on édite
   useEffect(() => {
     if (initialData) {
-      setName(initialData.name)
-      setPrice(initialData.price)
+      setName(initialData.nom)
+      setPrice(initialData.prix)
       setSelectedServices(initialData.services)
     } else {
       setName("")
@@ -55,14 +62,20 @@ export default function AddPackageDialog({
     }
   }, [initialData, open])
 
-  const handleServiceToggle = (service: string, checked: boolean) => {
+  const handleServiceToggle = (service: ServiceOption, checked: boolean) => {
     setSelectedServices((prev) =>
-      checked ? [...prev, service] : prev.filter((s) => s !== service)
+      checked
+        ? [...prev, service]
+        : prev.filter((s) => s.id !== service.id)
     )
   }
 
   const handleSubmit = () => {
-    onSubmit({ name, price, services: selectedServices })
+    onSubmit({
+      nom: name,
+      prix: price,
+      services: selectedServices,
+    })
     onOpenChange(false)
   }
 
@@ -91,7 +104,7 @@ export default function AddPackageDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Prix (€)</Label>
+            <Label>Prix (Ar)</Label>
             <Input
               type="number"
               value={price}
@@ -104,16 +117,16 @@ export default function AddPackageDialog({
             <Label>Services inclus</Label>
             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2">
               {allServices.map((service) => (
-                <div key={service} className="flex items-center space-x-2">
+                <div key={service.id} className="flex items-center space-x-2">
                   <Checkbox
-                    id={service}
-                    checked={selectedServices.includes(service)}
+                    id={`service-${service.id}`}
+                    checked={selectedServices.some((s) => s.id === service.id)}
                     onCheckedChange={(checked) =>
                       handleServiceToggle(service, checked as boolean)
                     }
                   />
-                  <Label htmlFor={service} className="text-sm">
-                    {service}
+                  <Label htmlFor={`service-${service.id}`} className="text-sm">
+                    {service.nom}
                   </Label>
                 </div>
               ))}

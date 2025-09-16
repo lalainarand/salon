@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import api from "@/lib/api";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Edit, Trash2 } from "lucide-react"
@@ -11,52 +12,22 @@ import { Switch } from "@/components/ui/switch"
 import AddPackageDialog from "@/app/(admin-group)/admin/components/AddPackageDialog"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
-// ✅ Définition du type
-type PackageType = {
+export interface ServiceOption {
   id: number
-  name: string
-  price: number
-  services: string[]
-  active: boolean
+  nom: string
 }
 
-const initialPackages: PackageType[] = [
-  {
-    id: 1,
-    name: "Forfait Détente",
-    price: 80,
-    services: ["Massage", "Spa", "Gommage"],
-    active: true,
-  },
-  {
-    id: 2,
-    name: "Forfait Glamour",
-    price: 120,
-    services: ["Coiffure", "Manucure", "Maquillage"],
-    active: true,
-  },
-  {
-    id: 3,
-    name: "Forfait Prestige",
-    price: 180,
-    services: ["Soin du visage", "Massage", "Pédicure"],
-    active: false,
-  },
-]
-
-const allServices = [
-  "Massage Relaxant",
-  "Soin du Visage",
-  "Manucure",
-  "Pédicure",
-  "Épilation",
-  "Shampoing & Brushing",
-  "Coupe & Coiffure",
-  "Coloration",
-]
+export interface PackageType {
+  id: number
+  nom: string
+  prix: number
+  services: ServiceOption[]
+  statut: boolean
+}
 
 export default function ForfaitPage() {
-  const [packages, setPackages] = useState<PackageType[]>(initialPackages)
+  const [packages, setPackages] = useState<PackageType[]>([])
+  const [services, setServices] = useState<ServiceOption[]>([])
   const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
@@ -65,16 +36,48 @@ export default function ForfaitPage() {
   const [packageToToggle, setPackageToToggle] = useState<PackageType | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
+  // Récupération des services depuis l'API
+  const fetchServices = async () => {
+    try {
+      const { data } = await api.get("/api/services")
+      setServices(data)
+    } catch (err) {
+      console.error("Erreur lors de la récupération des services:", err)
+    }
+  }
+
+  // Récupération des forfaits depuis l'API
+  const fetchForfaits = async () => {
+    try {
+      const { data } = await api.get("/api/forfaits")
+      setPackages(data)
+    } catch (err) {
+      console.error("Erreur lors de la récupération des forfaits:", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchServices()
+    fetchForfaits()
+  }, [])
+
   const handleDeleteClick = (pkg: PackageType) => {
     setPackageToDelete(pkg)
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!packageToDelete) return
-    setPackages((prev) => prev.filter((p) => p.id !== packageToDelete.id))
-    showSuccess(`Suppression de forfait succès`)
-    setOpenDeleteDialog(false)
+    try {
+      await api.delete(`/api/forfaits/${packageToDelete.id}`)
+      setPackages((prev) => prev.filter((p) => p.id !== packageToDelete.id))
+      showSuccess("Forfait supprimé avec succès.")
+    } catch (err) {
+      console.error("Erreur lors de la suppression :", err)
+    } finally {
+      setOpenDeleteDialog(false)
+      setPackageToDelete(null)
+    }
   }
 
   const handleToggleClick = (pkg: PackageType) => {
@@ -82,34 +85,63 @@ export default function ForfaitPage() {
     setOpenToggleDialog(true)
   }
 
-  const handleConfirmToggle = () => {
+  const handleConfirmToggle = async () => {
     if (!packageToToggle) return
-    setPackages((prev) =>
-      prev.map((p) => (p.id === packageToToggle.id ? { ...p, active: !p.active } : p))
-    )
-    setOpenToggleDialog(false)
-  }
-
-  const handleSave = (data: Omit<PackageType, "id" | "active">) => {
-    if (selectedPackage) {
+    try {
+      const { data } = await api.put(`/api/forfaits/changestatus/${packageToToggle.id}`)
       setPackages((prev) =>
-        prev.map((p) =>
-          p.id === selectedPackage.id ? { ...data, id: selectedPackage.id, active: selectedPackage.active } : p
-        )
+        prev.map((p) => (p.id === packageToToggle.id ? { ...p, statut: data.statut } : p))
       )
-      showSuccess(`Modification de  forfait ${data?.name} succès`)
-
-
-    } else {
-      setPackages((prev) => [
-        ...prev,
-        { ...data, id: Date.now(), active: true },
-      ])
-      showSuccess(`Création de nouveau forfait ${data?.name} succès`)
+      showSuccess("Statut du forfait changé avec succès.")
+    } catch (err) {
+      console.error("Erreur lors du changement de statut :", err)
+    } finally {
+      setOpenToggleDialog(false)
+      setPackageToToggle(null)
     }
-    setOpenDialog(false)
-    setSelectedPackage(null)
   }
+
+  const handleSave = async (pkgData: Omit<PackageType, "id" | "active">) => {
+    try {
+      // Construire payload à envoyer à l'API
+      const payload = {
+        ...pkgData,
+        services: pkgData.services.map((s: any) => s.id), // envoyer seulement les IDs
+      }
+
+      if (selectedPackage) {
+        // 🔹 Mise à jour
+        console.log("Données envoyées pour modification :", {
+          id: selectedPackage.id,
+          ...payload,
+        })
+
+        const { data } = await api.put(`/api/forfaits/${selectedPackage.id}`, payload)
+
+        setPackages((prev) =>
+          prev.map((p) => (p.id === selectedPackage.id ? data : p))
+        )
+        showSuccess("Forfait mis à jour avec succès.")
+      } else {
+        // 🔹 Création
+        const creationPayload = { ...payload, statut: true }
+        console.log("Données envoyées pour création :", creationPayload)
+
+        const { data } = await api.post(`/api/forfaits`, creationPayload)
+
+        console.log("Réponse API création :", data)
+
+        setPackages((prev) => [data, ...prev])
+        showSuccess("Nouveau forfait créé avec succès.")
+      }
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde :", err)
+    } finally {
+      setOpenDialog(false)
+      setSelectedPackage(null)
+    }
+  }
+
 
   return (
     <div className="p-4">
@@ -134,10 +166,10 @@ export default function ForfaitPage() {
           <Card key={pkg.id} className="hover:shadow-md">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">{pkg.name}</CardTitle>
+                <CardTitle className="text-lg">{pkg.nom}</CardTitle>
                 <div className="flex items-center gap-2">
                   <Switch
-                    checked={pkg.active}
+                    checked={pkg.statut}
                     onCheckedChange={() => handleToggleClick(pkg)}
                   />
                   <Button
@@ -148,7 +180,7 @@ export default function ForfaitPage() {
                       setOpenDialog(true)
                     }}
                   >
-                <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                    <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
                   </Button>
                   <Button
                     variant="ghost"
@@ -161,14 +193,14 @@ export default function ForfaitPage() {
                 </div>
               </div>
               <CardDescription className="mt-1 text-sm text-gray-600">
-                Prix : {pkg.price}€
+                Prix : {pkg.prix}Ar
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {pkg.services.map((s) => (
-                  <Badge key={s} variant="secondary" className="text-xs">
-                    {s}
+                  <Badge key={s.id} variant="secondary" className="text-xs">
+                    {s.nom}
                   </Badge>
                 ))}
               </div>
@@ -183,7 +215,7 @@ export default function ForfaitPage() {
         onSubmit={handleSave}
         initialData={selectedPackage}
         mode={selectedPackage ? "edit" : "add"}
-        allServices={allServices}
+        allServices={services}
       />
 
       <ConfirmDeleteDialog
@@ -203,13 +235,11 @@ export default function ForfaitPage() {
         description="Voulez-vous vraiment changer le statut de ce forfait ?"
       />
 
-
-      {/* Composant de notification */}
       <SuccessNotification
         show={notification.show}
         message={notification.message}
         onClose={hideNotification}
-        duration={4000} // 4 secondes
+        duration={4000}
       />
     </div>
   )
