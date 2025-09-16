@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Plus } from "lucide-react"
 
 export interface ClientData {
-  id?: number // facultatif pour l’ajout
+  id?: number 
   name: string
   email: string
   phone: string
@@ -28,7 +28,7 @@ export interface ClientData {
 interface AddClientDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  initialData?: ClientData
+   initialData?: ClientData | null
   onSubmit: (data: ClientData) => void
   mode?: "add" | "edit"
   triggerButton?: React.ReactNode
@@ -101,7 +101,7 @@ export default function AddClientDialog({
             <Input
               name="name"
               placeholder="Nom et prénom"
-              value={formData.name}
+              value={formData.name || ""}
               onChange={handleChange}
             />
           </div>
@@ -111,7 +111,7 @@ export default function AddClientDialog({
               name="email"
               type="email"
               placeholder="email@exemple.com"
-              value={formData.email}
+              value={formData.email || ""}
               onChange={handleChange}
             />
           </div>
@@ -120,7 +120,7 @@ export default function AddClientDialog({
             <Input
               name="phone"
               placeholder="06 12 34 56 78"
-              value={formData?.phone}
+              value={formData?.phone || ""}
               onChange={handleChange}
             />
           </div>
@@ -129,11 +129,11 @@ export default function AddClientDialog({
             <Input
               name="birthdate"
               type="date"
-              value={formData?.birthdate}
+              value={formData?.birthdate || ""}
               onChange={handleChange}
             />
           </div>
-          <div className="col-span-2 space-y-2">
+          {/* <div className="col-span-2 space-y-2">
             <Label htmlFor="address">Adresse</Label>
             <Input
               name="address"
@@ -141,7 +141,7 @@ export default function AddClientDialog({
               value={formData?.address}
               onChange={handleChange}
             />
-          </div>
+          </div> */}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

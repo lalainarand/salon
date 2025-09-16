@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Users, Scissors, Settings, BarChart3, UserCheck, Shield, Home, Tag, Star, Crown} from "lucide-react"
+import { Calendar, Users, Scissors, Settings, BarChart3, UserCheck, Shield, Home, Tag, Star, Crown } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -24,14 +24,9 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Clients",
-    url: "/admin/users",
-    icon: Users,
-  },
-  {
-    title: "Employés",
-    url: "/admin/employees",
-    icon: UserCheck,
+    title: "Specialites",
+    url: "/admin/specialites",
+    icon: Star,
   },
   {
     title: "Catégories",
@@ -43,11 +38,20 @@ const menuItems = [
     url: "/admin/services",
     icon: Scissors,
   },
-    {
-    title: "Specialites",
-    url: "/admin/specialites",
-    icon: Star,
+
+  {
+    title: "Clients",
+    url: "/admin/users",
+    icon: Users,
   },
+  {
+    title: "Employés",
+    url: "/admin/employees",
+    icon: UserCheck,
+  },
+
+
+
   {
     title: "Rendez-vous",
     url: "/admin/appointments",
@@ -58,15 +62,16 @@ const menuItems = [
     url: "/admin/forfaits",
     icon: BarChart3,
   },
-    {
-    title: "Permissions",
-    url: "/admin/permissions",
-    icon: Shield,
-  },
+ 
   {
     title: "Rôles",
     url: "/admin/roles",
     icon: Crown,
+  },
+   {
+    title: "Permissions",
+    url: "/admin/permissions",
+    icon: Shield,
   },
   {
     title: "Paramètres",

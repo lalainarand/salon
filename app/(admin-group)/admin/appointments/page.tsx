@@ -19,12 +19,12 @@ import { RefreshCw } from "lucide-react"
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    pending: "En attente",
-    confirmed: "Confirmé",
-    completed: "Terminé",
-    cancelled: "Annulé",
-    modified: "Modifié",
-    rescheduled: "Reporté",
+    en_attente: "En attente",
+    confirmé: "Confirmé",
+    terminé: "Terminé",
+    annulé: "Annulé",
+    // modified: "Modifié",
+    // rescheduled: "Reporté",
   }
   return labels[status] || "Inconnu"
 }
@@ -154,7 +154,7 @@ export default function AppointmentsPage() {
     fetchServices();
     fetchEmployes();
     fetchUsers();
-    fetchAppointments(1); // récupère la première page au montage
+    fetchAppointments(1); 
   }, []);
 
 
@@ -198,9 +198,6 @@ export default function AppointmentsPage() {
     }
   };
 
-
-
-
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
       appointment.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -229,9 +226,9 @@ export default function AppointmentsPage() {
     setSelectedAppointmentForStatus(appointment)
 
     // Exemple logique simple : toggle entre "pending" et "confirmed"
-    let newStatus = "confirmed"
-    if (appointment.status === "confirmed") newStatus = "completed"
-    if (appointment.status === "completed") newStatus = "cancelled"
+    let newStatus = "confirmé"
+    if (appointment.status === "confirmé") newStatus = "terminé"
+    if (appointment.status === "en_attente") newStatus = "confirmé"
 
     setNextStatus(newStatus)
     setOpenConfirmStatusDialog(true)
@@ -245,11 +242,15 @@ export default function AppointmentsPage() {
       const newStatus = getNextStatus(selectedAppointmentForStatus.status)
       console.log(`Changer statut de ${selectedAppointmentForStatus.id} → ${newStatus}`)
 
-      // 👉 Appelle ton API ici
+      const { data } = await api.post(`/api/events/status/${selectedAppointmentForStatus.id}/${newStatus}`)
+
+      showSuccess(` Statut de rendez-vous changé en → ${newStatus} success`)
 
       setOpenConfirmStatusDialog(false)
       setSelectedAppointmentForStatus(null)
-      // Revalider la liste si besoin
+
+      // Rafraîchit la liste
+      await fetchAppointments(currentPage)
     } catch (error) {
       console.error("Erreur lors du changement de statut", error)
     }

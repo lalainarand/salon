@@ -10,36 +10,6 @@ import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
 
-// const events = [
-//   {
-//     id: 1,
-//     title: "Marie D. - Coupe",
-//     date: "2025-08-01", // 1er août 2025 (vendredi)
-//     time: "09:00",
-//     duration: "1h",
-//     employee: "Sophie",
-//     status: "confirmed",
-//   },
-//   {
-//     id: 2,
-//     title: "Jean M. - Barbe",
-//     date: "2025-08-02", // samedi
-//     time: "10:30",
-//     duration: "2h",
-//     employee: "Pierre",
-//     status: "pending",
-//   },
-//   {
-//     id: 3,
-//     title: "Anna L. - Coloration",
-//     date: "2025-08-05", // mardi
-//     time: "14:00",
-//     duration: "2h",
-//     employee: "Marie",
-//     status: "confirmed",
-//   },
-// ]
-
 interface EventType {
   id: number
   title: string

@@ -1,182 +1,167 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import AddEmployeeDialog from "@/app/(admin-group)/admin/components/EmployeeFormDialog"
-import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Trash2, UserCheck, Calendar, Star } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
-import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
-import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog"
+import api from "@/lib/api";
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import AddEmployeeDialog from "@/app/(admin-group)/admin/components/EmployeeFormDialog";
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, Edit, Trash2, UserCheck, Calendar, Star } from "lucide-react";
+import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog";
 
+type Role = {
+  id: number;
+  nom: string;
+  couleur?: string;
+  description?: string;
+};
+
+type Specialty = {
+  id: number;
+  nom: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 type EmployeeType = {
-  id: number
-  name: string
-  email: string
-  phone: string
-  role: string
-  specialties: string[]
-  hireDate: string
-  schedule: string
-  rating: number
-  appointmentsThisMonth: number
-  status: "active" | "inactive"
-}
-
-
-const employees = [
-  {
-    id: 1,
-    name: "Sophie Martin",
-    email: "sophie.martin@salon.com",
-    phone: "06 12 34 56 78",
-    role: "Coiffeuse Senior",
-    specialties: ["Coupe", "Brushing", "Coloration"],
-    hireDate: "2022-03-15",
-    schedule: "Temps plein",
-    rating: 4.8,
-    appointmentsThisMonth: 45,
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Marie Rousseau",
-    email: "marie.rousseau@salon.com",
-    phone: "06 98 76 54 32",
-    role: "Coloriste",
-    specialties: ["Coloration", "Mèches", "Balayage"],
-    hireDate: "2021-09-10",
-    schedule: "Temps plein",
-    rating: 4.9,
-    appointmentsThisMonth: 38,
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Pierre Durand",
-    email: "pierre.durand@salon.com",
-    phone: "06 11 22 33 44",
-    role: "Barbier",
-    specialties: ["Barbe", "Coupe Homme", "Rasage"],
-    hireDate: "2023-01-20",
-    schedule: "Temps partiel",
-    rating: 4.7,
-    appointmentsThisMonth: 28,
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Julie Moreau",
-    email: "julie.moreau@salon.com",
-    phone: "06 55 66 77 88",
-    role: "Esthéticienne",
-    specialties: ["Soins visage", "Épilation", "Maquillage"],
-    hireDate: "2022-11-05",
-    schedule: "Temps plein",
-    rating: 4.6,
-    appointmentsThisMonth: 32,
-    status: "inactive",
-  },
-]
-
-const roles = ["Coiffeuse Senior", "Coiffeur Junior", "Coloriste", "Barbier", "Esthéticienne", "Réceptionniste"]
-const specialties = ["Coupe", "Brushing", "Coloration", "Mèches", "Balayage", "Barbe", "Rasage", "Soins", "Maquillage"]
-
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: Role | null;
+  specialties: Specialty[];
+  hireDate: string;
+  schedule: string;
+  rating: number;
+  appointmentsThisMonth: number;
+};
 
 export default function EmployeesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [roleFilter, setRoleFilter] = useState("all")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [employees, setEmployees] = useState<EmployeeType[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<number | "all">("all");
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeType | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { notification, showSuccess, hideNotification } = useSuccessNotification();
 
-
-  const [employeeList, setEmployeeList] = useState<EmployeeType[]>(
-    employees.map((e) => ({
-      ...e,
-      status: e.status === "active" ? "active" : "inactive",
-    }))
-  )
-
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
-  const [pendingToggleEmployee, setPendingToggleEmployee] = useState<EmployeeType | null>(null)
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
-  const { notification, showSuccess, hideNotification } = useSuccessNotification()
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null)
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-
-  const filteredEmployees = employeeList.filter((employee) => {
-    const matchesSearch =
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.role.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = roleFilter === "all" || employee.role === roleFilter
-    return matchesSearch && matchesRole
-  })
-
-  const handleClickDelete = (id: number) => {
-    setSelectedEmployeeId(id)
-    setIsDeleteDialogOpen(true)
-  }
-
-  const handleSaveEmployee = (data: any) => {
-    if (data.id) {
-      // c'est une modification
-      setEmployeeList((prev) =>
-        prev.map((emp) => (emp.id === data.id ? { ...emp, ...data } : emp))
-      )
-      showSuccess(`Modification des informations de ${data?.name} succès`)
-    } else {
-      // c'est un ajout
-      setEmployeeList((prev) => [
-        ...prev,
-        { ...data, id: Date.now(), status: "active" },
-      ])
-      showSuccess(`Création de compte pour ${data?.name} succès`)
-
+  // Fetch roles
+  const fetchRoles = async () => {
+    try {
+      const { data } = await api.get("/api/users/roles");
+      setRoles(data);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des roles:", err);
     }
+  };
 
-    setIsDialogOpen(false)
-    setSelectedEmployee(null)
-  }
+  // Fetch specialties
+  const fetchSpecialties = async () => {
+    try {
+      const { data } = await api.get("/api/specialite");
+      setSpecialties(data);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des spécialités:", err);
+    }
+  };
+
+  // Fetch employees
+  const fetchEmployees = async (page = 1) => {
+    try {
+      const { data } = await api.get(`/api/employees/list?page=${page}`);
+      setEmployees(data.data ?? []);
+      setCurrentPage(data.currentPage ?? 1);
+      setTotalPages(data.lastPage ?? 1);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des employés:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoles();
+    fetchSpecialties();
+    fetchEmployees();
+  }, []);
+
+  // Filtrage
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch =
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.role?.nom.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesRole =
+      roleFilter === "all" || emp.role?.id === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
 
   const handleDeleteEmployee = async () => {
-    if (selectedEmployeeId === null) return
+    if (!selectedEmployeeId) return;
 
-    // 🔁 Appel API si besoin
+    try {
+      const { data } = await api.delete(`/api/employes/${selectedEmployeeId}`);
+      console.log('suppression employé', selectedEmployeeId, data);
 
-    setEmployeeList((prev) => prev.filter((e) => e.id !== selectedEmployeeId))
-    setSelectedEmployeeId(null)
-    showSuccess(`Suppression succès`)
-  }
+      // Mettre à jour la liste locale
+      setEmployees((prev) => prev.filter((e) => e.id !== selectedEmployeeId));
+      setSelectedEmployeeId(null);
 
-  const handleToggleStatus = (employee: EmployeeType) => {
-    setPendingToggleEmployee(employee)
-    setIsConfirmDialogOpen(true)
-  }
+      showSuccess("Employé supprimé avec succès");
+    } catch (err) {
+      console.error("Erreur lors de la suppression de l'employé :", err);
+      // Tu peux aussi afficher une notification d'erreur ici si tu as un composant pour ça
+    }
+  };
 
-  const confirmToggleStatus = async () => {
-    if (!pendingToggleEmployee) return
 
-    const newStatus = pendingToggleEmployee.status === "active" ? "inactive" : "active"
+  const handleSaveEmployee = async (data: any) => {
+    try {
+      if (data.id) {
+        // Edition d'un employé
+        await api.post(`/api/employees/edit/${data.id}`, data);
+          console.log('Modification de employé', data);
+        showSuccess(`Modification des informations de ${data.name} succès`);
+      } else {
+        // Création d'un nouvel employé
+        console.log('Création de employé', data);
+        await api.post("/api/employees/store", data);
+        showSuccess(`Création de compte pour ${data.name} succès`);
+      }
 
-    // 🔁 Requête API ici si nécessaire
-    setEmployeeList((prev) =>
-      prev.map((e) =>
-        e.id === pendingToggleEmployee.id ? { ...e, status: newStatus } : e
-      )
-    )
+      // Rafraîchir la liste après succès
+      fetchEmployees(currentPage);
 
-    setPendingToggleEmployee(null)
-    setIsConfirmDialogOpen(false)
-  }
+      // Fermer le dialogue
+      setIsDialogOpen(false);
+      setSelectedEmployee(null);
+    } catch (err: any) {
+      console.error("Erreur lors de la sauvegarde de l'employé :", err);
+      // Afficher éventuellement une notification d'erreur
+    }
+  };
 
 
   return (
@@ -189,71 +174,14 @@ export default function EmployeesPage() {
         </div>
         <Button
           onClick={() => {
-            setSelectedEmployee(null)
-            setIsDialogOpen(true)
+            setSelectedEmployee(null);
+            setIsDialogOpen(true);
           }}
           className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
         >
           <Plus className="w-4 h-4 mr-2" />
           Nouvel Employé
         </Button>
-
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Employés</p>
-                <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
-              </div>
-              <UserCheck className="w-8 h-8 text-[rgb(135,169,107)]" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Employés Actifs</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {employees.filter((e) => e.status === "active").length}
-                </p>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">RDV ce mois</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {employees.reduce((acc, e) => acc + e.appointmentsThisMonth, 0)}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-[rgb(135,169,107)]" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Note Moyenne</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {(employees.reduce((acc, e) => acc + e.rating, 0) / employees.length).toFixed(1)}
-                </p>
-              </div>
-              <Star className="w-8 h-8 text-yellow-400 fill-current" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Filters */}
@@ -272,15 +200,21 @@ export default function EmployeesPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
+
+            <Select
+              value={roleFilter.toString()}
+              onValueChange={(value) =>
+                setRoleFilter(value === "all" ? "all" : parseInt(value))
+              }
+            >
               <SelectTrigger className="w-48">
-                <SelectValue />
+                <SelectValue placeholder="Tous les postes" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les postes</SelectItem>
                 {roles.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
+                  <SelectItem key={role.id} value={role.id.toString()}>
+                    {role.nom}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -306,92 +240,109 @@ export default function EmployeesPage() {
                   <TableHead>Embauche</TableHead>
                   <TableHead>Horaire</TableHead>
                   <TableHead>RDV/Mois</TableHead>
-                  <TableHead>Statut</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmployees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell>
-                      <div>
+                {filteredEmployees.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      Aucun employé trouvé
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredEmployees.map((employee) => (
+                    <TableRow key={employee.id}>
+                      <TableCell>
                         <p className="font-medium">{employee.name}</p>
                         <p className="text-sm text-gray-500">{employee.email}</p>
                         <p className="text-sm text-gray-500">{employee.phone}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{employee.role}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {employee.specialties.slice(0, 2).map((specialty) => (
-                          <Badge key={specialty} variant="secondary" className="text-xs">
-                            {specialty}
-                          </Badge>
-                        ))}
-                        {employee.specialties.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{employee.specialties.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Date(employee.hireDate).toLocaleDateString("fr-FR")}</TableCell>
-                    <TableCell>{employee.schedule}</TableCell>
-                    <TableCell className="text-center">{employee.appointmentsThisMonth}</TableCell>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{employee.role?.nom}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {employee.specialties.slice(0, 2).map((s) => (
+                            <Badge key={s.id} variant="secondary" className="text-xs">
+                              {s.nom}
+                            </Badge>
+                          ))}
+                          {employee.specialties.length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{employee.specialties.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{new Date(employee.hireDate).toLocaleDateString("fr-FR")}</TableCell>
+                      <TableCell>{employee.schedule}</TableCell>
+                      <TableCell className="text-center">{employee.appointmentsThisMonth}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => {
+                              setSelectedEmployeeId(employee.id)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
 
-                    {/* 🔁 Toggle avec confirmation */}
-                    <TableCell>
-                      <Switch
-                        key={employee.id + employee.status}
-                        checked={employee.status === "active"}
-                        onCheckedChange={() => handleToggleStatus(employee)}
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedEmployee(employee)
-                            setIsDialogOpen(true)
-                          }}
-                        >
-                           <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                        </Button>
-
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleClickDelete(employee.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
+
+            {/* Pagination */}
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                disabled={currentPage === 1}
+                style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+                onClick={() => fetchEmployees(currentPage - 1)}
+              >
+                ←
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  style={{
+                    backgroundColor: page === currentPage ? "rgb(155,183,131)" : "white",
+                    color: page === currentPage ? "white" : "black",
+                    border: "1px solid rgb(155,183,131)",
+                  }}
+                  onClick={() => fetchEmployees(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                disabled={currentPage === totalPages}
+                style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+                onClick={() => fetchEmployees(currentPage + 1)}
+              >
+                →
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
-      {/* ✅ Boîte de dialogue de confirmation */}
-      <ConfirmToggleDialog
-        open={isConfirmDialogOpen}
-        onOpenChange={setIsConfirmDialogOpen}
-        onConfirm={confirmToggleStatus}
-        title="Changer le statut de l’employé"
-        description={`Cet employé sera marqué comme ${pendingToggleEmployee?.status === "active" ? "inactif" : "actif"
-          }. Voulez-vous continuer ?`}
-        confirmLabel="Oui, changer le statut"
-      />
 
       <ConfirmDeleteDialog
         open={isDeleteDialogOpen}
@@ -407,18 +358,17 @@ export default function EmployeesPage() {
         onOpenChange={setIsDialogOpen}
         initialData={selectedEmployee}
         onSubmit={handleSaveEmployee}
-        roles={["Coiffeuse", "Esthéticienne", "Manager"]}
-        specialties={["Coloration", "Massage", "Onglerie"]}
+        roles={roles}
+        specialties={specialties}
         mode={selectedEmployee ? "edit" : "add"}
       />
 
-      {/* Composant de notification */}
       <SuccessNotification
         show={notification.show}
         message={notification.message}
         onClose={hideNotification}
-        duration={4000} // 4 secondes
+        duration={4000}
       />
     </div>
-  )
+  );
 }

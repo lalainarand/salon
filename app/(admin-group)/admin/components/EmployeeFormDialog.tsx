@@ -1,20 +1,56 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+type Specialty = {
+  id: number
+  nom: string
+  created_at?: string
+  updated_at?: string
+}
+
+type Role = {
+  id: number
+  nom: string
+  couleur?: string
+  description?: string
+}
+
+type EmployeeFormData = {
+  name: string
+  email: string
+  phone: string
+  role_id: number | null
+  hireDate: string
+  schedule: string
+  specialties: number[]
+}
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: any) => void
   initialData?: any
-  roles: string[]
-  specialties: string[]
+  roles: Role[]
+  specialties: Specialty[]
   mode?: "add" | "edit"
 }
 
@@ -27,14 +63,14 @@ export default function EmployeeFormDialog({
   specialties,
   mode = "add",
 }: Props) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<EmployeeFormData>({
     name: "",
     email: "",
     phone: "",
-    role: "",
+    role_id: null,
     hireDate: "",
     schedule: "",
-    specialties: [] as string[],
+    specialties: [],
   })
 
   useEffect(() => {
@@ -43,17 +79,17 @@ export default function EmployeeFormDialog({
         name: initialData.name || "",
         email: initialData.email || "",
         phone: initialData.phone || "",
-        role: initialData.role || "",
-        hireDate: initialData.hireDate?.slice(0, 10) || "", // format yyyy-mm-dd
+        role_id: initialData.role?.id || null,
+        hireDate: initialData.hireDate?.slice(0, 10) || "",
         schedule: initialData.schedule || "",
-        specialties: initialData.specialties || [],
+        specialties: initialData.specialties?.map((s: any) => s.id) || [],
       })
     } else {
       setForm({
         name: "",
         email: "",
         phone: "",
-        role: "",
+        role_id: null,
         hireDate: "",
         schedule: "",
         specialties: [],
@@ -67,20 +103,16 @@ export default function EmployeeFormDialog({
   }
 
   const handleSubmit = () => {
-    const data = {
-      ...form,
-      id: initialData?.id, // utile pour édition
-    }
-    onSubmit(data)
+    onSubmit({ ...form, id: initialData?.id })
     onOpenChange(false)
   }
 
-  const handleSpecialtyToggle = (spec: string) => {
+  const handleSpecialtyToggle = (id: number) => {
     setForm((prev) => ({
       ...prev,
-      specialties: prev.specialties.includes(spec)
-        ? prev.specialties.filter((s) => s !== spec)
-        : [...prev.specialties, spec],
+      specialties: prev.specialties.includes(id)
+        ? prev.specialties.filter((sId) => sId !== id)
+        : [...prev.specialties, id],
     }))
   }
 
@@ -101,59 +133,92 @@ export default function EmployeeFormDialog({
         <div className="grid grid-cols-2 gap-4 py-4">
           <div className="space-y-2">
             <Label>Nom complet</Label>
-            <Input name="name" value={form.name} onChange={handleChange} placeholder="Nom et prénom" />
+            <Input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Nom et prénom"
+            />
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
-            <Input name="email" value={form.email} onChange={handleChange} placeholder="email@salon.com" />
+            <Input
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="email@salon.com"
+            />
           </div>
           <div className="space-y-2">
             <Label>Téléphone</Label>
-            <Input name="phone" value={form.phone} onChange={handleChange} placeholder="06 12 34 56 78" />
+            <Input
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="06 12 34 56 78"
+            />
           </div>
           <div className="space-y-2">
             <Label>Poste</Label>
-            <Select value={form.role} onValueChange={(value) => setForm((p) => ({ ...p, role: value }))}>
+            <Select
+              value={form.role_id?.toString() || ""}
+              onValueChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  role_id: value ? parseInt(value) : null,
+                }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un poste" />
               </SelectTrigger>
               <SelectContent>
                 {roles.map((role) => (
-                  <SelectItem key={role} value={role.toLowerCase()}>
-                    {role}
+                  <SelectItem key={role.id} value={role.id.toString()}>
+                    {role.nom}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label>Date d'embauche</Label>
-            <Input name="hireDate" type="date" value={form.hireDate} onChange={handleChange} />
+            <Input
+              name="hireDate"
+              type="date"
+              value={form.hireDate}
+              onChange={handleChange}
+            />
           </div>
           <div className="space-y-2">
             <Label>Horaire</Label>
-            <Select value={form.schedule} onValueChange={(v) => setForm((p) => ({ ...p, schedule: v }))}>
+            <Select
+              value={form.schedule}
+              onValueChange={(v) => setForm((prev) => ({ ...prev, schedule: v }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Type de contrat" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="full-time">Temps plein</SelectItem>
-                <SelectItem value="part-time">Temps partiel</SelectItem>
+                <SelectItem value="temps_plein">Temps plein</SelectItem>
+                <SelectItem value="temps_partiel">Temps partiel</SelectItem>
                 <SelectItem value="freelance">Freelance</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
           <div className="col-span-2 space-y-2">
             <Label>Spécialités</Label>
             <div className="grid grid-cols-3 gap-2">
               {specialties.map((s) => (
-                <label key={s} className="flex items-center space-x-2">
+                <label key={s.id} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={form.specialties.includes(s)}
-                    onChange={() => handleSpecialtyToggle(s)}
+                    checked={form.specialties.includes(s.id)}
+                    onChange={() => handleSpecialtyToggle(s.id)}
                   />
-                  <span className="text-sm">{s}</span>
+                  <span className="text-sm">{s.nom}</span>
                 </label>
               ))}
             </div>
