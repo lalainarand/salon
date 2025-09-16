@@ -1,5 +1,6 @@
 "use client";
 
+import api from "@/lib/api";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,88 +27,52 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog";
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog";
+import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
 
-// Type pour les spécialités
+
 interface Specialite {
   id: number;
   nom: string;
-  status: "active" | "inactive";
-  createdAt: string;
-  updatedAt: string;
+  statut: number;
+  created_at: string;
+  updated_at: string;
 }
-
-// Données de test
-const initialSpecialites: Specialite[] = [
-  {
-    id: 1,
-    nom: "Cardiologie",
-    status: "active",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    nom: "Neurologie",
-    status: "active",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-15",
-  },
-  {
-    id: 3,
-    nom: "Dermatologie",
-    status: "inactive",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-15",
-  },
-  {
-    id: 4,
-    nom: "Pédiatrie",
-    status: "active",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-15",
-  },
-];
 
 // Modal pour ajout/modification
 const SpecialiteModal: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   specialite?: Specialite | null;
-  onSave: (specialite: Omit<Specialite, "id" | "createdAt" | "updatedAt"> & { id?: number }) => void;
+  onSave: (specialite: Partial<Specialite>) => void;
 }> = ({ open, onOpenChange, specialite, onSave }) => {
   const [formData, setFormData] = useState({
     nom: "",
-    status: "active" as "active" | "inactive",
+    statut: 1,
   });
 
   useEffect(() => {
     if (specialite) {
       setFormData({
         nom: specialite.nom,
-        status: specialite.status,
+        statut: specialite.statut,
       });
     } else {
       setFormData({
         nom: "",
-        status: "active",
+        statut: 1,
       });
     }
   }, [specialite, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.nom.trim()) {
       toast.error("Veuillez saisir le nom de la spécialité.");
       return;
     }
 
-    const specialiteData = {
-      ...formData,
-      ...(specialite && { id: specialite.id }),
-    };
-
-    onSave(specialiteData);
+    onSave({ ...formData, id: specialite?.id });
     onOpenChange(false);
   };
 
@@ -119,12 +84,12 @@ const SpecialiteModal: React.FC<{
             {specialite ? "Modifier la spécialité" : "Ajouter une spécialité"}
           </DialogTitle>
           <DialogDescription>
-            {specialite 
-              ? "Modifiez les informations de cette spécialité." 
+            {specialite
+              ? "Modifiez les informations de cette spécialité."
               : "Créez une nouvelle spécialité médicale."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -132,32 +97,34 @@ const SpecialiteModal: React.FC<{
               <Input
                 id="nom"
                 value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                placeholder="Ex: Cardiologie"
+                onChange={(e) =>
+                  setFormData({ ...formData, nom: e.target.value })
+                }
+                placeholder="Ex: Brushing"
                 required
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Switch
                 id="status"
-                checked={formData.status === "active"}
-                onCheckedChange={(checked) => 
-                  setFormData({ ...formData, status: checked ? "active" : "inactive" })
+                checked={formData.statut === 1}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, statut: checked ? 1 : 0 })
                 }
               />
               <Label htmlFor="status">
-                Spécialité {formData.status === "active" ? "active" : "inactive"}
+                Spécialité {formData.statut === 1 ? "active" : "inactive"}
               </Label>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
               className="hover:opacity-90"
             >
@@ -172,85 +139,78 @@ const SpecialiteModal: React.FC<{
 
 // Composant principal
 const SpecialitesPage: React.FC = () => {
-  const [specialites, setSpecialites] = useState<Specialite[]>(initialSpecialites);
+  const [specialites, setSpecialites] = useState<Specialite[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSpecialite, setEditingSpecialite] = useState<Specialite | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [pendingToggleSpecialite, setPendingToggleSpecialite] = useState<Specialite | null>(null);
   const [specialiteToDelete, setSpecialiteToDelete] = useState<Specialite | null>(null);
+  const { notification, showSuccess, hideNotification } = useSuccessNotification();
 
-  // Gestion de l'ajout/modification
-  const handleSaveSpecialite = (specialiteData: Omit<Specialite, "id" | "createdAt" | "updatedAt"> & { id?: number }) => {
-    const now = new Date().toISOString().split('T')[0];
-    
-    if (specialiteData.id) {
-      // Modification
-      setSpecialites(prev => prev.map(s => 
-        s.id === specialiteData.id 
-          ? { ...s, ...specialiteData, updatedAt: now }
-          : s
-      ));
-      toast.success("Spécialité modifiée avec succès.");
-    } else {
-      // Ajout
-      const newSpecialite: Specialite = {
-        ...specialiteData,
-        id: Math.max(...specialites.map(s => s.id)) + 1,
-        createdAt: now,
-        updatedAt: now,
-      };
-      setSpecialites(prev => [...prev, newSpecialite]);
-      toast.success("Spécialité ajoutée avec succès.");
+  // Charger depuis API
+  const fetchSpecialites = async () => {
+    try {
+      const { data } = await api.get("/api/specialite");
+      setSpecialites(data);
+    } catch (err) {
+      toast.error("Erreur lors de la récupération des spécialités");
+      console.error(err);
     }
-    
-    setEditingSpecialite(null);
   };
 
-  // Gestion du changement de statut
-  const handleToggleStatus = (specialite: Specialite) => {
-    setPendingToggleSpecialite(specialite);
-    setIsConfirmDialogOpen(true);
+  useEffect(() => {
+    fetchSpecialites();
+  }, []);
+
+  // Sauvegarder (ajout / edit)
+  const handleSaveSpecialite = async (specialiteData: Partial<Specialite>) => {
+    try {
+      if (specialiteData.id) {
+        await api.put(`/api/specialite/${specialiteData.id}`, specialiteData);
+        showSuccess("Spécialité modifiée avec succès.");
+      } else {
+        await api.post(`/api/specialite`, specialiteData);
+        showSuccess("Spécialité ajoutée avec succès.");
+      }
+      fetchSpecialites();
+    } catch (err) {
+      toast.error("Erreur lors de la sauvegarde");
+      console.error(err);
+    }
   };
 
-  const confirmToggleStatus = () => {
+  // Changement de statut
+  const confirmToggleStatus = async () => {
     if (pendingToggleSpecialite) {
-      const newStatus = pendingToggleSpecialite.status === "active" ? "inactive" : "active";
-      setSpecialites(prev => prev.map(s => 
-        s.id === pendingToggleSpecialite.id 
-          ? { ...s, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : s
-      ));
-      toast.success(`Statut de la spécialité "${pendingToggleSpecialite.nom}" changé avec succès.`);
+      try {
+        await api.put(`/api/specialite/change/${pendingToggleSpecialite.id}`, {
+          ...pendingToggleSpecialite,
+          statut: pendingToggleSpecialite.statut === 1 ? 0 : 1,
+        });
+        showSuccess(`Statut changé avec succès.`);
+        fetchSpecialites();
+      } catch (err) {
+        toast.error("Erreur lors du changement de statut");
+      }
     }
     setPendingToggleSpecialite(null);
     setIsConfirmDialogOpen(false);
   };
 
-  // Gestion de la suppression
-  const handleDeleteClick = (specialite: Specialite) => {
-    setSpecialiteToDelete(specialite);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteSpecialite = () => {
+  // Suppression
+  const handleDeleteSpecialite = async () => {
     if (specialiteToDelete) {
-      setSpecialites(prev => prev.filter(s => s.id !== specialiteToDelete.id));
+      try {
+        await api.delete(`/api/specialite/${specialiteToDelete.id}`);
+        showSuccess("Spécialité supprimée avec succès.");
+        fetchSpecialites();
+      } catch (err) {
+        toast.error("Erreur lors de la suppression");
+      }
       setSpecialiteToDelete(null);
       setIsDeleteDialogOpen(false);
     }
-  };
-
-  // Ouvrir modal pour modification
-  const handleEditClick = (specialite: Specialite) => {
-    setEditingSpecialite(specialite);
-    setIsModalOpen(true);
-  };
-
-  // Ouvrir modal pour ajout
-  const handleAddClick = () => {
-    setEditingSpecialite(null);
-    setIsModalOpen(true);
   };
 
   return (
@@ -265,8 +225,11 @@ const SpecialitesPage: React.FC = () => {
             Gérez les spécialités médicales - ajout, modification et suppression
           </p>
         </div>
-        <Button 
-          onClick={handleAddClick}
+        <Button
+          onClick={() => {
+            setEditingSpecialite(null);
+            setIsModalOpen(true);
+          }}
           style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
           className="hover:opacity-90"
         >
@@ -275,7 +238,7 @@ const SpecialitesPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Tableau des spécialités */}
+      {/* Tableau */}
       <Card>
         <CardHeader>
           <CardTitle style={{ color: "rgb(150,180,125)" }}>
@@ -297,23 +260,28 @@ const SpecialitesPage: React.FC = () => {
             <TableBody>
               {specialites.map((specialite) => (
                 <TableRow key={specialite.id}>
-                  <TableCell className="font-medium">{specialite.id}</TableCell>
-                  <TableCell className="font-medium">{specialite.nom}</TableCell>
+                  <TableCell>{specialite.id}</TableCell>
+                  <TableCell>{specialite.nom}</TableCell>
                   <TableCell>
                     <Switch
-                      key={specialite.id + specialite.status}
-                      checked={specialite.status === "active"}
-                      onCheckedChange={() => handleToggleStatus(specialite)}
+                      checked={specialite.statut === 1}
+                      onCheckedChange={() => {
+                        setPendingToggleSpecialite(specialite);
+                        setIsConfirmDialogOpen(true);
+                      }}
                     />
                   </TableCell>
-                  <TableCell>{specialite.createdAt}</TableCell>
-                  <TableCell>{specialite.updatedAt}</TableCell>
+                  <TableCell>{new Date(specialite.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(specialite.updated_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center space-x-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEditClick(specialite)}
+                        onClick={() => {
+                          setEditingSpecialite(specialite);
+                          setIsModalOpen(true);
+                        }}
                         className="h-8 w-8"
                       >
                         <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
@@ -321,7 +289,10 @@ const SpecialitesPage: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDeleteClick(specialite)}
+                        onClick={() => {
+                          setSpecialiteToDelete(specialite);
+                          setIsDeleteDialogOpen(true);
+                        }}
                         className="h-8 w-8"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
@@ -332,23 +303,10 @@ const SpecialitesPage: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-
-          {specialites.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <p>Aucune spécialité trouvée.</p>
-              <Button 
-                onClick={handleAddClick}
-                className="mt-4"
-                style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
-              >
-                Ajouter la première spécialité
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Modal pour ajout/modification */}
+      {/* Modal */}
       <SpecialiteModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
@@ -356,26 +314,32 @@ const SpecialitesPage: React.FC = () => {
         onSave={handleSaveSpecialite}
       />
 
-      {/* Dialog de confirmation pour changement de statut */}
+      {/* Dialog toggle */}
       <ConfirmToggleDialog
         open={isConfirmDialogOpen}
         onOpenChange={setIsConfirmDialogOpen}
         onConfirm={confirmToggleStatus}
         title="Changer le statut de la spécialité"
-        description={`Cette spécialité sera marquée comme ${
-          pendingToggleSpecialite?.status === "active" ? "inactive" : "active"
-        }. Voulez-vous continuer ?`}
-        confirmLabel="Oui, changer le statut"
+        description="Voulez-vous vraiment changer le statut de cette spécialité ?"
+        confirmLabel="Oui, changer"
       />
 
-      {/* Dialog de confirmation pour suppression */}
+      {/* Dialog suppression */}
       <ConfirmDeleteDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         onConfirm={handleDeleteSpecialite}
         title="Supprimer cette spécialité ?"
-        description="Cette action est irréversible. Voulez-vous vraiment supprimer cette spécialité ?"
+        description="Cette action est irréversible."
         toastMessage="Spécialité supprimée avec succès."
+      />
+
+
+      <SuccessNotification
+        show={notification.show}
+        message={notification.message}
+        onClose={hideNotification}
+        duration={4000}
       />
     </div>
   );
