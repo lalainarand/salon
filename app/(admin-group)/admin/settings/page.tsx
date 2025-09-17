@@ -43,6 +43,7 @@ type SettingsState = {
   address: string;
   phone: string;
   email: string;
+  description: string,
   website: string;
   openingHours: OpeningHours;
   paymentMethods: PaymentMethods;
@@ -59,6 +60,7 @@ export default function SettingsPage() {
     phone: "",
     email: "",
     website: "",
+    description: "",
     openingHours: {},
     paymentMethods: {},
     notifications: {
@@ -100,6 +102,7 @@ export default function SettingsPage() {
         address: data.settings.address,
         phone: data.settings.telephone,
         email: data.settings.email,
+        description: data.settings.description,
         website: data.settings.site_web,
         openingHours: mappedOpeningHours,
         paymentMethods: mappedPaymentMethods,
@@ -134,7 +137,7 @@ export default function SettingsPage() {
           site_web: settings.website,
           telephone: settings.phone,
           email: settings.email,
-          description: settings.cancellationPolicy.description,
+          description: settings.description,
         },
         openingHours: Object.entries(settings.openingHours).map(([jour, h]) => ({
           jour,
@@ -209,62 +212,64 @@ export default function SettingsPage() {
                 {/* Site web */}
                 <div className="space-y-2 relative">
                   <Label htmlFor="website">Site web</Label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="website"
-                      value={settings.website}
-                      onChange={(e) => setSettings({ ...settings, website: e.target.value })}
-                      className="pl-10"
-                    />
-                  </div>
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="website"
+                    value={settings.website}
+                    onChange={(e) => setSettings({ ...settings, website: e.target.value })}
+                    className="pl-10"
+                  />
                 </div>
               </div>
 
               {/* Adresse */}
               <div className="space-y-2 relative">
                 <Label htmlFor="address">Adresse</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-                  <Textarea
-                    id="address"
-                    value={settings.address}
-                    onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                    className="pl-10 pt-2"
-                    rows={3} // tu peux ajuster selon la taille souhaitée
-                  />
-                </div>
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  id="address"
+                  value={settings.address}
+                  onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                  className="pl-10"
+                />
               </div>
 
+              {/* Description du salon */}
+              <div className="space-y-2 relative">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={settings.description}
+                  onChange={(e) => setSettings({ ...settings, description: e.target.value })}
+                  rows={4}
+                  className="pl-3 pt-2"
+                />
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Téléphone */}
                 <div className="space-y-2 relative">
                   <Label htmlFor="phone">Téléphone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="phone"
-                      value={settings.phone}
-                      onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                      className="pl-10"
-                    />
-                  </div>
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="phone"
+                    value={settings.phone}
+                    onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                    className="pl-10"
+                  />
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2 relative">
                   <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={settings.email}
-                      onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                      className="pl-10"
-                    />
-                  </div>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={settings.email}
+                    onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                    className="pl-10"
+                  />
                 </div>
               </div>
             </CardContent>
