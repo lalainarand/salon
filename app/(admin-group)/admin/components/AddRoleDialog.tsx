@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,22 +15,23 @@ interface AddRoleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: {
+    id?: number
     name: string
     color: string
     description: string
     permissions: string[]
   }) => void
   allPermissions: {
-    category: string
+    groupe: string
     permissions: { key: string; label: string }[]
   }[]
   initialData?: {
     id: number
-    name: string
+    nom: string
     description: string
     usersCount: number
-    permissions: string[]
-    color: string
+    permissions: { id: number; nom: string }[]
+    couleur: string
     createdAt: string
   } | null
   mode?: "add" | "edit"
@@ -49,13 +50,16 @@ export default function AddRoleDialog({
   const [description, setDescription] = useState("")
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
 
-  // Pré-remplissage lors de l'ouverture en mode édition
+  // Pré-remplissage des champs et permissions
   useEffect(() => {
     if (initialData) {
-      setName(initialData.name)
-      setColor(initialData.color)
-      setDescription(initialData.description)
-      setSelectedPermissions(initialData.permissions)
+      setName(initialData.nom || "")
+      setColor(initialData.couleur || "#059669")
+      setDescription(initialData.description || "")
+
+      // Extraire les IDs des permissions et les convertir en strings
+      const perms = initialData.permissions.map(p => p.id.toString())
+      setSelectedPermissions(perms)
     } else {
       setName("")
       setColor("#059669")
@@ -64,20 +68,49 @@ export default function AddRoleDialog({
     }
   }, [initialData, open])
 
+  // Toggle d'une permission individuelle
   const handlePermissionToggle = (key: string, checked: boolean) => {
-    setSelectedPermissions((prev) =>
-      checked ? [...prev, key] : prev.filter((p) => p !== key)
+    setSelectedPermissions(prev =>
+      checked ? [...prev, key] : prev.filter(p => p !== key)
     )
   }
 
+  // Toggle de toutes les permissions d'un groupe
+  const handleGroupToggle = (groupe: string, checked: boolean) => {
+    const groupPermissions =
+      allPermissions.find(g => g.groupe === groupe)?.permissions.map(p => p.key) || []
+
+    setSelectedPermissions(prev => {
+      if (checked) {
+        const newPerms = groupPermissions.filter(p => !prev.includes(p))
+        return [...prev, ...newPerms]
+      } else {
+        return prev.filter(p => !groupPermissions.includes(p))
+      }
+    })
+  }
+
+  // ✅ Envoi des données (id seulement en modification)
   const handleSubmit = () => {
-    onSubmit({ name, color, description, permissions: selectedPermissions })
+    const payload = {
+      name,
+      color,
+      description,
+      permissions: selectedPermissions,
+    }
+
+    if (mode === "edit" && initialData?.id) {
+      onSubmit({ ...payload, id: initialData.id })
+    } else {
+      onSubmit(payload)
+    }
+
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === "edit" ? "Modifier un rôle" : "Créer un nouveau rôle"}
@@ -90,10 +123,11 @@ export default function AddRoleDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Nom et couleur */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nom du rôle</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <Input value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Couleur</Label>
@@ -101,48 +135,76 @@ export default function AddRoleDialog({
                 type="color"
                 className="w-full h-10"
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={e => setColor(e.target.value)}
               />
             </div>
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label>Description</Label>
             <Textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="Description du rôle et de ses responsabilités..."
             />
           </div>
 
-          <div className="space-y-4">
+          {/* Permissions */}
+          <div className="space-y-6">
             <Label className="text-base font-semibold">Permissions</Label>
-            {allPermissions.map((category) => (
-              <div key={category.category} className="space-y-3">
-                <h4 className="font-medium text-sm text-gray-700 border-b pb-1">
-                  {category.category}
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {category.permissions.map((permission) => (
-                    <div key={permission.key} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={permission.key}
-                        checked={selectedPermissions.includes(permission.key)}
-                        onCheckedChange={(checked) =>
-                          handlePermissionToggle(permission.key, checked as boolean)
-                        }
-                      />
-                      <Label
-                        htmlFor={permission.key}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {permission.label}
-                      </Label>
-                    </div>
-                  ))}
+            {allPermissions.map(groupe => {
+              const groupPermissions = groupe.permissions.map(p => p.key)
+              const allSelected = groupPermissions.every(p =>
+                selectedPermissions.includes(p)
+              )
+              const someSelected =
+                !allSelected &&
+                groupPermissions.some(p => selectedPermissions.includes(p))
+
+              return (
+                <div key={groupe.groupe} className="space-y-3 border rounded-lg p-4">
+                  {/* Checkbox de groupe */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`group-${groupe.groupe}`}
+                      checked={allSelected}
+                      onCheckedChange={checked =>
+                        handleGroupToggle(groupe.groupe, checked as boolean)
+                      }
+                      data-indeterminate={someSelected} // état indéterminé
+                    />
+                    <Label
+                      htmlFor={`group-${groupe.groupe}`}
+                      className="text-sm font-semibold cursor-pointer"
+                    >
+                      {groupe.groupe}
+                    </Label>
+                  </div>
+
+                  {/* Permissions individuelles */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pl-6">
+                    {groupe.permissions.map(permission => (
+                      <div key={permission.key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={permission.key}
+                          checked={selectedPermissions.includes(permission.key)}
+                          onCheckedChange={checked =>
+                            handlePermissionToggle(permission.key, checked as boolean)
+                          }
+                        />
+                        <Label
+                          htmlFor={permission.key}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {permission.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
