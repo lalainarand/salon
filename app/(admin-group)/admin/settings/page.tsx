@@ -81,7 +81,7 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const { data } = await api.get("/api/settings");
-
+      console.log('resulatats de settings',data)
       const mappedOpeningHours: OpeningHours = {};
       data.horaireOuverture.forEach((h: any) => {
         mappedOpeningHours[h.jour.toLowerCase()] = {
