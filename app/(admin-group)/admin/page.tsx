@@ -1,122 +1,115 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, DollarSign, Scissors, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarComponent } from "./components/calendar-component"
 import { StatsChart } from "./components/stats-chart"
+import { CalendarComponent } from "./components/calendar-component"
+import api from "@/lib/api"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
 
-const stats = [
-  {
-    title: "RDV Aujourd'hui",
-    value: "12",
-    change: "+2",
-    icon: Calendar,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    title: "Clients Total",
-    value: "1,234",
-    change: "+15",
-    icon: Users,
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-  },
-  {
-    title: "CA du Mois",
-    value: "€12,450",
-    change: "+8%",
-    icon: DollarSign,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    title: "Services Actifs",
-    value: "24",
-    change: "+3",
-    icon: Scissors,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
-  },
-]
+interface Stat {
+  title: string
+  value: string | number
+  change: string
+  icon: any
+  color: string
+  bgColor: string
+}
 
-const recentAppointments = [
-  {
-    id: 1,
-    client: "Marie Dubois",
-    service: "Coupe + Brushing",
-    time: "09:00",
-    employee: "Sophie",
-    status: "confirmed",
-  },
-  {
-    id: 2,
-    client: "Jean Martin",
-    service: "Barbe",
-    time: "10:30",
-    employee: "Pierre",
-    status: "pending",
-  },
-  {
-    id: 3,
-    client: "Anna Leroy",
-    service: "Coloration",
-    time: "14:00",
-    employee: "Marie",
-    status: "completed",
-  },
-  {
-    id: 4,
-    client: "Paul Durand",
-    service: "Coupe Homme",
-    time: "16:00",
-    employee: "Sophie",
-    status: "cancelled",
-  },
-]
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "confirmed":
-      return (
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Confirmé
-        </Badge>
-      )
-    case "pending":
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-          <Clock className="w-3 h-3 mr-1" />
-          En attente
-        </Badge>
-      )
-    case "completed":
-      return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Terminé
-        </Badge>
-      )
-    case "cancelled":
-      return (
-        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-          <XCircle className="w-3 h-3 mr-1" />
-          Annulé
-        </Badge>
-      )
-    default:
-      return <Badge variant="secondary">{status}</Badge>
-  }
+interface Rdv {
+  id: number
+  client: any
+  service: any
+  forfait: any
+  heure: string
+  employee?: string
+  status: string
 }
 
 export default function AdminDashboard() {
-  const [selectedEmployee, setSelectedEmployee] = useState("all")
-  const [selectedPeriod, setSelectedPeriod] = useState("today")
+  const [selectedPeriod, setSelectedPeriod] = useState("day")
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [statsData, setStatsData] = useState<Stat[]>([])
+  const [recentRdv, setRecentRdv] = useState<Rdv[]>([])
+  const [caChart, setCaChart] = useState<any[]>([])
+  const [serviceChart, setServiceChart] = useState<any[]>([])
+
+  const fetchDashboardStats = async (filter: string, date?: Date) => {
+    try {
+      const params: any = { filter }
+      if (date) {
+        params.date = date.toISOString()
+      }
+      const { data } = await api.get("/api/dashboard/stats", { params })
+      console.log("Données du dashboard:", data)
+
+      setStatsData([
+        {
+          title: "RDV",
+          value: data.stats.rdv_today,
+          change: "+0",
+          icon: Calendar,
+          color: "text-blue-600",
+          bgColor: "bg-blue-50",
+        },
+        {
+          title: "Clients Total",
+          value: data.stats.clients_total,
+          change: "+0",
+          icon: Users,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+        },
+        {
+          title: "CA",
+          value: `${data.stats.ca}Ar`,
+          change: "+0%",
+          icon: DollarSign,
+          color: "text-purple-600",
+          bgColor: "bg-purple-50",
+        },
+        {
+          title: "Services Actifs",
+          value: data.stats.services_actifs,
+          change: "+0",
+          icon: Scissors,
+          color: "text-orange-600",
+          bgColor: "bg-orange-50",
+        },
+      ])
+
+      setRecentRdv(data.recent_rdv)
+      setCaChart(data.ca_chart)
+      setServiceChart(data.service_chart)
+    } catch (err) {
+      console.error("Erreur récupération dashboard:", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardStats(selectedPeriod, selectedDate)
+  }, [selectedPeriod, selectedDate])
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "confirmé":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100"><CheckCircle className="w-3 h-3 mr-1" />Confirmé</Badge>
+      case "en_attente":
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"><Clock className="w-3 h-3 mr-1" />En attente</Badge>
+      case "terminé":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100"><CheckCircle className="w-3 h-3 mr-1" />Terminé</Badge>
+      case "annulé":
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100"><XCircle className="w-3 h-3 mr-1" />Annulé</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -126,34 +119,31 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord</h1>
           <p className="text-gray-600 mt-1">Vue d'ensemble de votre salon de beauté</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="today">Aujourd'hui</SelectItem>
-              <SelectItem value="week">Cette semaine</SelectItem>
-              <SelectItem value="month">Ce mois</SelectItem>
+              <SelectItem value="day">Journalier</SelectItem>
+              <SelectItem value="month">Mensuel</SelectItem>
+              <SelectItem value="year">Annuel</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les employés</SelectItem>
-              <SelectItem value="sophie">Sophie</SelectItem>
-              <SelectItem value="marie">Marie</SelectItem>
-              <SelectItem value="pierre">Pierre</SelectItem>
-            </SelectContent>
-          </Select>
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date: Date) => setSelectedDate(date)}
+            dateFormat={selectedPeriod === "month" ? "MM/yyyy" : selectedPeriod === "year" ? "yyyy" : "dd/MM/yyyy"}
+            showMonthYearPicker={selectedPeriod === "month"}
+            showYearPicker={selectedPeriod === "year"}
+            className="border rounded px-2 py-1 text-sm"
+          />
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
+        {statsData.map((stat, index) => (
           <Card key={index} className="border-l-4 border-l-[rgb(135,169,107)] hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -200,24 +190,26 @@ export default function AdminDashboard() {
                 <Clock className="w-5 h-5 text-[rgb(135,169,107)]" />
                 RDV Récents
               </CardTitle>
-              <CardDescription>Derniers rendez-vous de la journée</CardDescription>
+              <CardDescription>Derniers rendez-vous</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentAppointments.map((appointment) => (
-                <div key={appointment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {recentRdv.map((rdv) => (
+                <div key={rdv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{appointment.client}</p>
-                    <p className="text-sm text-gray-600">{appointment.service}</p>
-                    <p className="text-xs text-gray-500">
-                      {appointment.time} - {appointment.employee}
+                    <p className="font-medium text-gray-900">{rdv.client.name}</p>
+                    <p className="text-sm text-gray-600">
+                      {rdv.service ? rdv.service.nom : rdv.forfait ? rdv.forfait.nom : "—"}
                     </p>
+                    <p className="text-xs text-gray-500">{rdv.heure} {rdv.employee || ""}</p>
                   </div>
-                  <div>{getStatusBadge(appointment.status)}</div>
+                  <div>{getStatusBadge(rdv.status)}</div>
                 </div>
               ))}
-              <Button className="w-full mt-4 bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-                Voir tous les RDV
-              </Button>
+              <Link href="admin/appointments">
+                <Button className="w-full mt-4 bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
+                  Voir tous les RDV
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -228,10 +220,10 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Évolution du Chiffre d'Affaires</CardTitle>
-            <CardDescription>Revenus des 6 derniers mois</CardDescription>
+            <CardDescription>Revenus selon le filtre sélectionné</CardDescription>
           </CardHeader>
           <CardContent>
-            <StatsChart type="revenue" />
+            <StatsChart type="revenue" data={caChart} />
           </CardContent>
         </Card>
 
@@ -241,7 +233,7 @@ export default function AdminDashboard() {
             <CardDescription>Services les plus demandés</CardDescription>
           </CardHeader>
           <CardContent>
-            <StatsChart type="services" />
+            <StatsChart type="services" data={serviceChart} />
           </CardContent>
         </Card>
       </div>
