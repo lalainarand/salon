@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, DollarSign, Scissors, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StatsChart } from "./components/stats-chart"
+import { ServicesChart } from "./components/ServicesChart"
 import { CalendarComponent } from "./components/calendar-component"
 import api from "@/lib/api"
 import DatePicker from "react-datepicker"
@@ -132,12 +133,21 @@ export default function AdminDashboard() {
           </Select>
           <DatePicker
             selected={selectedDate}
-            onChange={(date: Date) => setSelectedDate(date)}
-            dateFormat={selectedPeriod === "month" ? "MM/yyyy" : selectedPeriod === "year" ? "yyyy" : "dd/MM/yyyy"}
+            onChange={(date: Date | null) => {
+              if (date) setSelectedDate(date)
+            }}
+            dateFormat={
+              selectedPeriod === "month"
+                ? "MM/yyyy"
+                : selectedPeriod === "year"
+                  ? "yyyy"
+                  : "dd/MM/yyyy"
+            }
             showMonthYearPicker={selectedPeriod === "month"}
             showYearPicker={selectedPeriod === "year"}
             className="border rounded px-2 py-1 text-sm"
           />
+
         </div>
       </div>
 
@@ -226,16 +236,16 @@ export default function AdminDashboard() {
             <StatsChart type="revenue" data={caChart} />
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Répartition des Services</CardTitle>
             <CardDescription>Services les plus demandés</CardDescription>
           </CardHeader>
           <CardContent>
-            <StatsChart type="services" data={serviceChart} />
+            <ServicesChart data={serviceChart} />
           </CardContent>
         </Card>
+
       </div>
     </div>
   )

@@ -115,11 +115,11 @@ export default function ServicesPage() {
     try {
       if (selectedService) {
         await api.put(`/api/services/${selectedService.id}`, data)
-          console.log('modification des services',data)
+        console.log('modification des services', data)
         showSuccess(`Modification du service succès`)
       } else {
         await api.post(`/api/services/`, data)
-        console.log('creation des services',data)
+        console.log('creation des services', data)
         showSuccess(`Création du service  succès`)
       }
 
@@ -208,7 +208,7 @@ export default function ServicesPage() {
                   {services.length > 0
                     ? Math.round(services.reduce((acc, s) => acc + parseFloat(s.prix), 0) / services.length)
                     : 0}
-                  €
+                  Ar
                 </p>
               </div>
               <Euro className="w-8 h-8 text-[rgb(135,169,107)]" />
@@ -299,7 +299,7 @@ export default function ServicesPage() {
                       <Badge variant="outline">{service.categorie.nom}</Badge>
                     </TableCell>
                     <TableCell>{service.duree_minutes} min</TableCell>
-                    <TableCell className="font-medium">{service.prix}€</TableCell>
+                    <TableCell className="font-medium">{service.prix}Ar</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-full bg-gray-200 rounded-full h-2">
