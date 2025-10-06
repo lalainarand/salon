@@ -29,7 +29,6 @@ import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmTog
 import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDeleteDialog";
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification";
 
-
 interface Specialite {
   id: number;
   nom: string;
@@ -38,40 +37,29 @@ interface Specialite {
   updated_at: string;
 }
 
-// Modal pour ajout/modification
+// Modal d’ajout / édition
 const SpecialiteModal: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   specialite?: Specialite | null;
   onSave: (specialite: Partial<Specialite>) => void;
 }> = ({ open, onOpenChange, specialite, onSave }) => {
-  const [formData, setFormData] = useState({
-    nom: "",
-    statut: 1,
-  });
+  const [formData, setFormData] = useState({ nom: "", statut: 1 });
 
   useEffect(() => {
     if (specialite) {
-      setFormData({
-        nom: specialite.nom,
-        statut: specialite.statut,
-      });
+      setFormData({ nom: specialite.nom, statut: specialite.statut });
     } else {
-      setFormData({
-        nom: "",
-        statut: 1,
-      });
+      setFormData({ nom: "", statut: 1 });
     }
   }, [specialite, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.nom.trim()) {
       toast.error("Veuillez saisir le nom de la spécialité.");
       return;
     }
-
     onSave({ ...formData, id: specialite?.id });
     onOpenChange(false);
   };
@@ -86,7 +74,7 @@ const SpecialiteModal: React.FC<{
           <DialogDescription>
             {specialite
               ? "Modifiez les informations de cette spécialité."
-              : "Créez une nouvelle spécialité médicale."}
+              : "Créez une nouvelle spécialité."}
           </DialogDescription>
         </DialogHeader>
 
@@ -148,11 +136,20 @@ const SpecialitesPage: React.FC = () => {
   const [specialiteToDelete, setSpecialiteToDelete] = useState<Specialite | null>(null);
   const { notification, showSuccess, hideNotification } = useSuccessNotification();
 
-  // Charger depuis API
-  const fetchSpecialites = async () => {
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 10;
+
+  // Charger les spécialités
+  const fetchSpecialites = async (page = 1) => {
     try {
-      const { data } = await api.get("/api/specialite");
-      setSpecialites(data);
+      const { data } = await api.get("/api/specialite/indexpaginate", {
+        params: { page, per_page: itemsPerPage },
+      });
+      setSpecialites(data.data || data);
+      setTotalPages(data.last_page || 1);
+      setCurrentPage(data.current_page || 1);
     } catch (err) {
       toast.error("Erreur lors de la récupération des spécialités");
       console.error(err);
@@ -160,10 +157,10 @@ const SpecialitesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchSpecialites();
+    fetchSpecialites(currentPage);
   }, []);
 
-  // Sauvegarder (ajout / edit)
+  // Sauvegarde (ajout / modification)
   const handleSaveSpecialite = async (specialiteData: Partial<Specialite>) => {
     try {
       if (specialiteData.id) {
@@ -173,10 +170,9 @@ const SpecialitesPage: React.FC = () => {
         await api.post(`/api/specialite`, specialiteData);
         showSuccess("Spécialité ajoutée avec succès.");
       }
-      fetchSpecialites();
+      fetchSpecialites(currentPage);
     } catch (err) {
       toast.error("Erreur lors de la sauvegarde");
-      console.error(err);
     }
   };
 
@@ -188,9 +184,9 @@ const SpecialitesPage: React.FC = () => {
           ...pendingToggleSpecialite,
           statut: pendingToggleSpecialite.statut === 1 ? 0 : 1,
         });
-        showSuccess(`Statut changé avec succès.`);
-        fetchSpecialites();
-      } catch (err) {
+        showSuccess("Statut changé avec succès.");
+        fetchSpecialites(currentPage);
+      } catch {
         toast.error("Erreur lors du changement de statut");
       }
     }
@@ -204,8 +200,8 @@ const SpecialitesPage: React.FC = () => {
       try {
         await api.delete(`/api/specialite/${specialiteToDelete.id}`);
         showSuccess("Spécialité supprimée avec succès.");
-        fetchSpecialites();
-      } catch (err) {
+        fetchSpecialites(currentPage);
+      } catch {
         toast.error("Erreur lors de la suppression");
       }
       setSpecialiteToDelete(null);
@@ -222,7 +218,7 @@ const SpecialitesPage: React.FC = () => {
             Gestion des Spécialités
           </h1>
           <p className="text-gray-600 mt-2">
-            Gérez les spécialités médicales - ajout, modification et suppression
+            Gérez les spécialités - ajout, modification et suppression
           </p>
         </div>
         <Button
@@ -233,8 +229,7 @@ const SpecialitesPage: React.FC = () => {
           style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
           className="hover:opacity-90"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter Spécialité
+          <Plus className="mr-2 h-4 w-4" /> Ajouter Spécialité
         </Button>
       </div>
 
@@ -303,10 +298,43 @@ const SpecialitesPage: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              disabled={currentPage === 1}
+              style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+              onClick={() => fetchSpecialites(currentPage - 1)}
+            >
+              ←
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                style={{
+                  backgroundColor: page === currentPage ? "rgb(155,183,131)" : "white",
+                  color: page === currentPage ? "white" : "black",
+                  border: "1px solid rgb(155,183,131)",
+                }}
+                onClick={() => fetchSpecialites(page)}
+              >
+                {page}
+              </Button>
+            ))}
+
+            <Button
+              disabled={currentPage === totalPages}
+              style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+              onClick={() => fetchSpecialites(currentPage + 1)}
+            >
+              →
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Modal */}
+      {/* Dialogs & Notifications */}
       <SpecialiteModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
@@ -314,7 +342,6 @@ const SpecialitesPage: React.FC = () => {
         onSave={handleSaveSpecialite}
       />
 
-      {/* Dialog toggle */}
       <ConfirmToggleDialog
         open={isConfirmDialogOpen}
         onOpenChange={setIsConfirmDialogOpen}
@@ -324,7 +351,6 @@ const SpecialitesPage: React.FC = () => {
         confirmLabel="Oui, changer"
       />
 
-      {/* Dialog suppression */}
       <ConfirmDeleteDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -333,7 +359,6 @@ const SpecialitesPage: React.FC = () => {
         description="Cette action est irréversible."
         toastMessage="Spécialité supprimée avec succès."
       />
-
 
       <SuccessNotification
         show={notification.show}

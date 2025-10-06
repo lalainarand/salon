@@ -62,20 +62,36 @@ export default function ServicesPage() {
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
   const [categories, setCategories] = useState<{ id: number; nom: string }[]>([])
 
-  // --- Charger services ---
-  const fetchServices = async () => {
+  // --- Pagination ---
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalServices, setTotalServices] = useState(0)
+  const [totalActifs, setTotalActifs] = useState(0)
+  const itemsPerPage = 10
+
+
+  const fetchServices = async (page = 1) => {
     try {
-      const { data } = await api.get("/api/services")
-      // injecter une popularité aléatoire
-      const mapped = data.map((s: any) => ({
+      const { data } = await api.get(
+        `/api/services/indexPaginate?page=${page}&per_page=${itemsPerPage}`
+      )
+
+      const mapped = data.data.map((s: any) => ({
         ...s,
         popularity: Math.floor(Math.random() * 100),
       }))
+
       setServices(mapped)
+      setCurrentPage(page)
+      setTotalPages(data.last_page || 1)
+      setTotalServices(data.total_services || 0)
+      setTotalActifs(data.total_actifs || 0)
     } catch (err) {
       console.error("Erreur lors de la récupération des services :", err)
     }
   }
+
+
 
   // --- Charger categories ---
   const fetchCategories = async () => {
@@ -178,7 +194,7 @@ export default function ServicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Services</p>
-                <p className="text-2xl font-bold text-gray-900">{services.length}</p>
+<p className="text-2xl font-bold text-gray-900">{totalServices}</p>
               </div>
               <Scissors className="w-8 h-8 text-[rgb(135,169,107)]" />
             </div>
@@ -189,9 +205,8 @@ export default function ServicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Services Actifs</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {services.filter((s) => s.statut === 1).length}
-                </p>
+               <p className="text-2xl font-bold text-gray-900">{totalActifs}</p>
+
               </div>
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -353,6 +368,40 @@ export default function ServicesPage() {
                 ))}
               </TableBody>
             </Table>
+
+            {/* Pagination */}
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                disabled={currentPage === 1}
+                style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+                onClick={() => fetchServices(currentPage - 1)}
+              >
+                ←
+              </Button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  style={{
+                    backgroundColor: page === currentPage ? "rgb(155,183,131)" : "white",
+                    color: page === currentPage ? "white" : "black",
+                    border: "1px solid rgb(155,183,131)",
+                  }}
+                  onClick={() => fetchServices(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+
+              <Button
+                disabled={currentPage === totalPages}
+                style={{ backgroundColor: "rgb(155,183,131)", color: "white" }}
+                onClick={() => fetchServices(currentPage + 1)}
+              >
+                →
+              </Button>
+            </div>
+
 
             {/* Dialogs */}
             <ConfirmDeleteDialog

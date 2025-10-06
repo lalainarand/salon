@@ -38,19 +38,39 @@ export default function CategoriesPage() {
   const [dialogOpenId, setDialogOpenId] = useState<number | null>(null)
   const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const [stats, setStats] = useState({
+    total_services: 0,
+    moyenne_services_par_categorie: 0,
+  })
 
   // Charger depuis API
   const fetchCategories = async () => {
     try {
       const { data } = await api.get("/api/categories/index")
+      console.log("Catégories chargées :", data)
       setCategoriesState(data)
     } catch (err) {
       console.error("Erreur lors du chargement des catégories :", err)
     }
   }
 
+
+  const fetchStatistiqueCategories = async () => {
+    try {
+      const { data } = await api.get("/api/categories/stats")
+      console.log("Stat catégories :", data)
+      setStats({
+        total_services: data.total_services,
+        moyenne_services_par_categorie: data.moyenne_services_par_categorie,
+      })
+    } catch (err) {
+      console.error("Erreur lors du chargement des stat catégories :", err)
+    }
+  }
+
   useEffect(() => {
     fetchCategories()
+    fetchStatistiqueCategories()
   }, [])
 
   // Toggle statut
@@ -164,21 +184,21 @@ export default function CategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Services Total</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {/* Ici, si l’API renvoie pas les servicesCount il faut l’ajouter */}
-                  {0}
-                </p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_services}</p>
               </div>
               <Palette className="w-8 h-8 text-[rgb(135,169,107)]" />
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Moy. Services/Cat.</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.moyenne_services_par_categorie}
+                </p>
               </div>
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-bold text-sm">=</span>
@@ -284,9 +304,8 @@ export default function CategoriesPage() {
                 onOpenChange={(open) => setDialogOpenId(open ? category.id : null)}
                 onConfirm={() => handleToggleStatus(category)}
                 title="Changer le statut de la catégorie"
-                description={`Souhaitez-vous vraiment ${
-                  category.statut === 1 ? "désactiver" : "activer"
-                } cette catégorie ?`}
+                description={`Souhaitez-vous vraiment ${category.statut === 1 ? "désactiver" : "activer"
+                  } cette catégorie ?`}
                 confirmLabel="Confirmer"
               />
             </Card>
