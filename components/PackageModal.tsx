@@ -18,6 +18,11 @@ import { CalendarDays, Clock, CreditCard, User } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import ErrorNotification, { useErrorNotification } from "@/app/(admin-group)/admin/components/ErrorNotification"
 
+interface ModePaiement {
+  id: number
+  nom: string
+  statut: number
+}
 
 interface PackageType {
   id: number
@@ -32,6 +37,7 @@ interface PackageModalProps {
   onClose: () => void
   initialPackage: PackageType | null
   initialStep?: number
+  paymentMethods: ModePaiement[]
 }
 
 interface ClientInfo {
@@ -47,11 +53,12 @@ export default function PackageModal({
   onClose,
   initialPackage,
   initialStep = 1,
+  paymentMethods,
 }: PackageModalProps) {
   const [step, setStep] = useState(initialStep)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTime, setSelectedTime] = useState("")
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<any | null>(null)
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     firstName: "",
     lastName: "",
@@ -61,38 +68,37 @@ export default function PackageModal({
   })
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user")
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-
-        // Pré-remplir les infos client avec les données utilisateur
+        const parsedUser = JSON.parse(storedUser)
+        setUser(parsedUser)
         setClientInfo(prev => ({
           ...prev,
           firstName: parsedUser.name || "",
           email: parsedUser.email || "",
           phone: parsedUser.phone || "",
-        }));
+        }))
       } catch (error) {
-        console.error("Erreur parsing user:", error);
-        setUser(null);
+        console.error("Erreur parsing user:", error)
+        setUser(null)
       }
     }
-  }, []);
+  }, [])
 
-  // ✅ Maintenant les hooks sont dans le contexte Elements !
-  const stripe = useStripe();
-  const elements = useElements();
-
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "onsite" | "">("")
+  const stripe = useStripe()
+  const elements = useElements()
+  const [paymentMethod, setPaymentMethod] = useState<string>("")
   const [isConfirmed, setIsConfirmed] = useState(false)
-  const { notification, showError, hideNotification } = useErrorNotification()
+  const { showError } = useErrorNotification()
 
-  function formatDateForApi(date?: Date | string): string | null {
-    if (!date) return null; // ou tu peux throw une erreur selon ton cas
-    return new Date(date).toISOString().split("T")[0];
-  }
+  const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+
+  const formatDateForApi = (date?: Date | string): string | null =>
+    date ? new Date(date).toISOString().split("T")[0] : null
+
+  const isClientInfoValid = () =>
+    clientInfo.firstName && clientInfo.email && clientInfo.phone
 
   const handleClose = () => {
     setStep(1)
@@ -104,31 +110,22 @@ export default function PackageModal({
     onClose()
   }
 
-  const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
-
-  const isClientInfoValid = () => {
-    return clientInfo.firstName && clientInfo.email && clientInfo.phone
-  }
-
   const handleConfirmReservation = async () => {
-    const apiDate = selectedDate ? formatDateForApi(selectedDate) : null;
-    if (!stripe || !elements) {
-      console.log("Stripe pas encore prêt:", { stripe, elements });
-      showError("Le paiement n'est pas prêt. Veuillez réessayer.");
-      return;
-    }
+    const apiDate = selectedDate ? formatDateForApi(selectedDate) : null
 
-    if (paymentMethod === "online") {
-      const cardElement = elements.getElement(CardElement);
+    if (paymentMethod.toLowerCase() === "stripe") {
+      if (!stripe || !elements) {
+        showError("Le paiement n'est pas prêt. Veuillez réessayer.")
+        return
+      }
 
+      const cardElement = elements.getElement(CardElement)
       if (!cardElement) {
-        console.error("CardElement non trouvé");
-        showError("Impossible de trouver le champ de carte. Veuillez réessayer.");
-        return;
+        showError("Impossible de trouver le champ de carte.")
+        return
       }
 
       try {
-        // Crée un PaymentMethod Stripe
         const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
           type: "card",
           card: cardElement,
@@ -137,16 +134,13 @@ export default function PackageModal({
             email: user.email,
             phone: user.phone,
           },
-        });
+        })
 
         if (error) {
-          console.error("Erreur Stripe:", error);
-          showError(`Erreur de paiement : ${error.message}`);
-          setIsConfirmed(false);
-          return;
+          showError(`Erreur de paiement : ${error.message}`)
+          return
         }
 
-        // Envoyer la réservation au serveur
         await api.post("/api/appointments/forfaits", {
           package: initialPackage,
           client_id: user?.id,
@@ -158,49 +152,43 @@ export default function PackageModal({
           status: "confirmé",
           paye: 1,
           price: initialPackage?.prix,
-        });
+        })
 
       } catch (err: any) {
-        console.error("Erreur lors du paiement:", err);
-        const message = err.response?.data?.message || "Une erreur s'est produite lors du paiement.";
-        showError(message);
-        setIsConfirmed(false);
-        return;
+        showError(err.response?.data?.message || "Une erreur est survenue.")
+        return
       }
-
     } else {
       try {
-        // Paiement en espèces
         await api.post("/api/appointments/forfaits", {
           package: initialPackage,
           client_id: user?.id,
           date: apiDate,
           heure: selectedTime,
-          mode_paiement: "especes",
+          mode_paiement: paymentMethod,
           note: clientInfo.note,
           status: "confirmé",
           paye: 0,
-        });
+        })
       } catch (err: any) {
-        console.error("Erreur lors de la réservation:", err);
-        const message = err.response?.data?.message || "Erreur lors de la réservation.";
-        showError(message);
-        setIsConfirmed(false);
-        return;
+        showError(err.response?.data?.message || "Erreur lors de la réservation.")
+        return
       }
     }
 
-    setIsConfirmed(true);
+    setIsConfirmed(true)
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-playfair text-charcoal">Prendre rendez-vous</DialogTitle>
+          <DialogTitle className="text-2xl font-playfair text-charcoal">
+            Prendre rendez-vous
+          </DialogTitle>
         </DialogHeader>
 
-        {/* ÉTAPE 1 - Choix de la date et heure */}
+        {/* ------------------ ETAPE 1 ------------------ */}
         {step === 1 && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -229,7 +217,6 @@ export default function PackageModal({
                     </Button>
                   ))}
                 </div>
-
               </div>
               <div className="flex justify-between pt-6">
                 <Button
@@ -245,7 +232,7 @@ export default function PackageModal({
           </div>
         )}
 
-        {/* ÉTAPE 2 - Informations client */}
+        {/* ------------------ ETAPE 2 ------------------ */}
         {step === 2 && (
           <div className="space-y-4">
             <Card>
@@ -260,7 +247,8 @@ export default function PackageModal({
                       id="firstName"
                       value={clientInfo.firstName}
                       onChange={(e) => setClientInfo({ ...clientInfo, firstName: e.target.value })}
-                      placeholder="Votre prénom"readOnly
+                      placeholder="Votre prénom"
+                      readOnly
                     />
                   </div>
                   <div>
@@ -286,7 +274,6 @@ export default function PackageModal({
                       readOnly
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="phone">Téléphone</Label>
                     <Input
@@ -301,19 +288,16 @@ export default function PackageModal({
                 </div>
                 <div>
                   <Label htmlFor="notes">Notes (optionnel)</Label>
-                  <Textarea id="notes"
+                  <Textarea
+                    id="notes"
                     onChange={(e) => setClientInfo({ ...clientInfo, note: e.target.value })}
-                    placeholder="Informations supplémentaires..." />
+                    placeholder="Informations supplémentaires..."
+                  />
                 </div>
               </CardContent>
             </Card>
-
             <div className="flex justify-between gap-4">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setStep(1)}
-              >
+              <Button variant="outline" className="w-full" onClick={() => setStep(1)}>
                 Précédent
               </Button>
               <Button
@@ -327,7 +311,7 @@ export default function PackageModal({
           </div>
         )}
 
-        {/* ÉTAPE 3 - Récapitulatif et paiement */}
+        {/* ------------------ ETAPE 3 ------------------ */}
         {step === 3 && !isConfirmed && (
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             {/* Récapitulatif */}
@@ -335,31 +319,19 @@ export default function PackageModal({
               <CardHeader>
                 <CardTitle className="text-green-800 text-lg">Récapitulatif de votre rendez-vous</CardTitle>
               </CardHeader>
-
-
-
               <CardContent className="space-y-3">
-                {/* ID du forfait */}
-                {/* <div className="flex items-center space-x-3">
-                  <span className="font-medium text-muted-foreground">Identifiant :</span>
-                  <span>{initialPackage?.id}</span>
-                </div> */}
-
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-sage" />
                   <span>{initialPackage?.nom}</span>
                 </div>
-
                 <div className="flex items-center space-x-3">
                   <CalendarDays className="h-5 w-5 text-sage" />
                   <span>{selectedDate?.toLocaleDateString("fr-FR")}</span>
                 </div>
-
                 <div className="flex items-center space-x-3">
                   <Clock className="h-5 w-5 text-sage" />
                   <span>{selectedTime}</span>
                 </div>
-
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total:</span>
@@ -369,29 +341,34 @@ export default function PackageModal({
               </CardContent>
             </Card>
 
-            {/* Choix du mode de paiement */}
+            {/* ------------------ Paiement dynamique ------------------ */}
             <div>
-              <h3 className="text-lg font-medium text-green-800 mb-3">Mode de paiement</h3>
-              <div className="flex gap-4">
-                <Button
-                  variant={paymentMethod === "online" ? "default" : "outline"}
-                  onClick={() => setPaymentMethod("online")}
-                  className={`w-full ${paymentMethod === "online" ? "bg-sage hover:bg-green-800" : ""}`}
-                >
-                  Payer en ligne maintenant
-                </Button>
-                <Button
-                  variant={paymentMethod === "onsite" ? "default" : "outline"}
-                  onClick={() => setPaymentMethod("onsite")}
-                  className={`w-full ${paymentMethod === "onsite" ? "bg-sage hover:bg-green-800" : ""}`}
-                >
-                  Payer sur place
-                </Button>
+              <Label className="text-base font-medium">Mode de paiement</Label>
+              <div className="flex flex-wrap gap-4 mt-2">
+                {paymentMethods?.length > 0 ? (
+                  paymentMethods.map((method) => (
+                    <div key={method.id} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id={`payment-${method.id}`}
+                        name="payment"
+                        value={method.nom.toLowerCase()}
+                        checked={paymentMethod === method.nom.toLowerCase()}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      />
+                      <Label htmlFor={`payment-${method.id}`}>{method.nom}</Label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm">Aucun mode de paiement disponible</p>
+                )}
               </div>
             </div>
 
-            {/* Formulaire de paiement si paiement en ligne */}
-            {paymentMethod === "online" && (
+
+
+            {/* Stripe uniquement si sélectionné */}
+            {paymentMethod.toLowerCase() === "stripe" && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -409,19 +386,8 @@ export default function PackageModal({
                       <CardElement
                         options={{
                           style: {
-                            base: {
-                              fontSize: "16px",
-                              color: "#32325d",
-                              fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                              fontSmoothing: "antialiased",
-                              "::placeholder": {
-                                color: "#aab7c4"
-                              }
-                            },
-                            invalid: {
-                              color: "#e53e3e",
-                              iconColor: "#e53e3e"
-                            },
+                            base: { fontSize: "16px", color: "#32325d", "::placeholder": { color: "#aab7c4" } },
+                            invalid: { color: "#e53e3e" },
                           },
                         }}
                       />
@@ -430,14 +396,9 @@ export default function PackageModal({
                 </CardContent>
               </Card>
             )}
+
             <div className="flex justify-between gap-4 sticky bottom-0 bg-white pt-4 mt-4 border-t">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setStep(2)}
-              >
-                Précédent
-              </Button>
+              <Button variant="outline" className="w-full" onClick={() => setStep(2)}>Précédent</Button>
               <Button
                 className="w-full bg-sage hover:bg-green-800 text-white"
                 onClick={handleConfirmReservation}
@@ -449,7 +410,7 @@ export default function PackageModal({
           </div>
         )}
 
-        {/* ÉTAPE 3 - Confirmation */}
+        {/* ------------------ Confirmation ------------------ */}
         {step === 3 && isConfirmed && (
           <div className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">

@@ -21,6 +21,7 @@ interface AppointmentModalProps {
   initialService?: Service | null | undefined;
   initialStep?: number;
   services: any[];
+  paymentMethods: { id: number; nom: string }[]; // ✅ ajouté ici
 }
 
 interface ClientInfo {
@@ -31,16 +32,15 @@ interface ClientInfo {
   note: string
 }
 
-// ✅ COMPOSANT WRAPPER (sans hooks Stripe)
 export default function AppointmentModal({
   isOpen,
   onClose,
   initialService,
   initialStep,
-  services = [], // tableau vide par défaut si pas fourni
+  services = [],
+  paymentMethods, // ✅ récupéré ici
 }: AppointmentModalProps & { initialService?: Service | null }) {
 
-  // Pas de hooks Stripe ici !
   if (!isOpen) return null;
 
   return (
@@ -48,30 +48,30 @@ export default function AppointmentModal({
       onClose={onClose}
       initialService={initialService}
       initialStep={initialStep}
-      services={services} // toujours un tableau
+      services={services}
+      paymentMethods={paymentMethods} // ✅ passé à l’enfant
     />
   );
 }
 
-
 function formatDateForApi(date?: Date | string): string | null {
-  if (!date) return null; // ou tu peux throw une erreur selon ton cas
+  if (!date) return null;
   return new Date(date).toISOString().split("T")[0];
 }
 
-// ✅ COMPOSANT AVEC HOOKS STRIPE
 function AppointmentModalContent({
   onClose,
   initialService,
   initialStep,
   services = [],
+  paymentMethods, // ✅ ici aussi
 }: {
   onClose: () => void;
   initialService?: Service | null;
   initialStep?: number;
   services: any[];
+  paymentMethods: { id: number; nom: string }[];
 }) {
-  // ✅ Maintenant les hooks sont dans le contexte Elements !
   const stripe = useStripe();
   const elements = useElements();
 
@@ -97,13 +97,8 @@ function AppointmentModalContent({
 
   const timeSlots = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
 
-  const handleNext = () => {
-    if (step < 4) setStep(step + 1)
-  }
-
-  const handlePrevious = () => {
-    if (step > 1) setStep(step - 1)
-  }
+  const handleNext = () => { if (step < 4) setStep(step + 1) }
+  const handlePrevious = () => { if (step > 1) setStep(step - 1) }
 
   const handleClose = () => {
     setStep(1)
@@ -123,17 +118,14 @@ function AppointmentModalContent({
       return;
     }
 
-    if (paymentMethod === "online") {
+    if (paymentMethod.toLowerCase() === "stripe") {
       const cardElement = elements.getElement(CardElement);
-
       if (!cardElement) {
-        console.error("CardElement non trouvé");
-        showError("Impossible de trouver le champ de carte. Veuillez réessayer.");
+        showError("Impossible de trouver le champ de carte.");
         return;
       }
 
       try {
-        // Crée un PaymentMethod Stripe
         const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
           type: "card",
           card: cardElement,
@@ -145,51 +137,44 @@ function AppointmentModalContent({
         });
 
         if (error) {
-          console.error("Erreur Stripe:", error);
           showError(`Erreur de paiement : ${error.message}`);
           setIsConfirmed(false);
           setIsisshowbtn(true);
           return;
         }
 
-        // Envoyer la réservation au serveur
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
           date: formatDateForApi(selectedDate),
           heure: selectedTime,
-          mode_paiement: "paiement_en_ligne",
+          mode_paiement: "stripe",
           stripe_payment_method_id: stripePaymentMethod.id,
           note: clientInfo.note,
           status: "confirmé",
           paye: 1,
           price: selectedService?.prix,
         });
-
       } catch (err: any) {
-        console.error("Erreur lors du paiement:", err);
-        const message = err.response?.data?.message || "Une erreur s'est produite lors du paiement.";
+        const message = err.response?.data?.message || "Erreur lors du paiement.";
         showError(message);
         setIsConfirmed(false);
         setIsisshowbtn(true);
         return;
       }
-
     } else {
       try {
-        // Paiement en espèces
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
           date: formatDateForApi(selectedDate),
           heure: selectedTime,
-          mode_paiement: "especes",
+          mode_paiement: paymentMethod,
           note: clientInfo.note,
           status: "confirmé",
           paye: 0,
         });
       } catch (err: any) {
-        console.error("Erreur lors de la réservation:", err);
         const message = err.response?.data?.message || "Erreur lors de la réservation.";
         showError(message);
         setIsConfirmed(false);
@@ -202,30 +187,22 @@ function AppointmentModalContent({
     setIsisshowbtn(false);
   };
 
-
   useEffect(() => {
-    if (initialStep) {
-      setStep(initialStep);
-    }
-    if (initialService) {
-      setSelectedService(initialService);
-    }
+    if (initialStep) setStep(initialStep);
+    if (initialService) setSelectedService(initialService);
 
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-
-        // Pré-remplir les infos client avec les données utilisateur
         setClientInfo(prev => ({
           ...prev,
           firstName: parsedUser.name || "",
           email: parsedUser.email || "",
           phone: parsedUser.phone || "",
         }));
-      } catch (error) {
-        console.error("Erreur parsing user:", error);
+      } catch {
         setUser(null);
       }
     }
@@ -240,20 +217,14 @@ function AppointmentModalContent({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Debug Stripe (à supprimer en production) */}
-        {/* <div className="mb-4 p-2 bg-blue-50 rounded text-xs">
-          <p>🔧 Debug: Stripe: {stripe ? "✅" : "❌"} | Elements: {elements ? "✅" : "❌"}</p>
-        </div> */}
-
         <div className="space-y-6">
-          {/* Progress indicator */}
+          {/* Étapes progressives */}
           {isshowbtn && (
             <div className="flex items-center justify-between mb-8">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${i <= step ? "bg-sage text-white" : "bg-gray-200 text-gray-500"
-                      }`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${i <= step ? "bg-sage text-white" : "bg-gray-200 text-gray-500"}`}
                   >
                     {i}
                   </div>
@@ -263,31 +234,22 @@ function AppointmentModalContent({
             </div>
           )}
 
-          {/* Step 1: Service Selection */}
+          {/* Étape 1 : service */}
           {step === 1 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">
-                Choisissez votre service
-              </h3>
+              <h3 className="text-lg font-semibold text-charcoal mb-4">Choisissez votre service</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {services.map((service) => (
                   <Card
                     key={service.id}
-                    className={`cursor-pointer transition-all ${selectedService?.id === service.id
-                      ? "ring-2 ring-sage bg-sage/5"
-                      : "hover:shadow-md"
-                      }`}
+                    className={`cursor-pointer transition-all ${selectedService?.id === service.id ? "ring-2 ring-sage bg-sage/5" : "hover:shadow-md"}`}
                     onClick={() => setSelectedService(service)}
                   >
                     <CardContent className="p-4">
                       <h4 className="font-semibold text-charcoal">{service.nom}</h4>
-                      <p className="text-sm text-gray-600">
-                        {service.duree_minutes} min
-                      </p>
+                      <p className="text-sm text-gray-600">{service.duree_minutes} min</p>
                       <p className="text-lg font-bold text-sage">{service.prix} Ar</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {service.categorie?.nom}
-                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{service.categorie?.nom}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -295,12 +257,10 @@ function AppointmentModalContent({
             </div>
           )}
 
-          {/* Step 2: Date & Time Selection */}
+          {/* Étape 2 : date & heure */}
           {step === 2 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">
-                Choisissez la date et l'heure
-              </h3>
+              <h3 className="text-lg font-semibold text-charcoal mb-4">Choisissez la date et l'heure</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label className="text-sm font-medium text-charcoal mb-2 block">Date</Label>
@@ -332,58 +292,31 @@ function AppointmentModalContent({
             </div>
           )}
 
-          {/* Step 3: Personal Information */}
+          {/* Étape 3 : infos client */}
           {step === 3 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-charcoal mb-4">Vos informations</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">Nom et prénom</Label>
-                  <Input
-                    id="firstName"
-                    value={clientInfo.firstName}
-                    onChange={(e) => setClientInfo({ ...clientInfo, firstName: e.target.value })}
-                    readOnly
-                    placeholder="Votre prénom"
-                  />
+                  <Label>Nom et prénom</Label>
+                  <Input value={clientInfo.firstName} readOnly />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Identifiant</Label>
-                  <Input
-                    id="lastName"
-                    value='SERV-0010-BT'
-                    onChange={(e) => setClientInfo({ ...clientInfo, lastName: e.target.value })}
-                    placeholder="Votre nom"
-                    
-                  />
+                  <Label>Identifiant</Label>
+                  <Input value="SERV-0010-BT" readOnly />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={clientInfo.email}
-                    onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
-                    placeholder="votre.email@exemple.com"
-                    readOnly
-                  />
+                  <Label>Email</Label>
+                  <Input value={clientInfo.email} readOnly />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={clientInfo.phone}
-                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                    placeholder="06 12 34 56 78"
-                    readOnly
-                  />
+                  <Label>Téléphone</Label>
+                  <Input value={clientInfo.phone} readOnly />
                 </div>
               </div>
               <div>
-                <Label htmlFor="notes">Notes (optionnel)</Label>
+                <Label>Notes (optionnel)</Label>
                 <Textarea
-                  id="notes"
                   value={clientInfo.note}
                   onChange={(e) => setClientInfo({ ...clientInfo, note: e.target.value })}
                   placeholder="Informations supplémentaires..."
@@ -392,79 +325,54 @@ function AppointmentModalContent({
             </div>
           )}
 
-          {/* Step 4: Payment */}
+          {/* Étape 4 : paiement */}
           {step === 4 && !isConfirmed && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-charcoal mb-4">
-                Récapitulatif et paiement
-              </h3>
+              <h3 className="text-lg font-semibold text-charcoal mb-4">Récapitulatif et paiement</h3>
 
-              {/* Summary */}
+              {/* Résumé */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Récapitulatif de votre rendez-vous</CardTitle>
+                  <CardTitle>Récapitulatif</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* ID du service */}
-                  {/* <div className="flex items-center space-x-3">
-                    <span className="font-medium text-muted-foreground">Identifiant :</span>
-                    <span>{selectedService?.id}</span>
-                  </div> */}
-
-                  <div className="flex items-center space-x-3">
-                    <User className="h-5 w-5 text-sage" />
-                    <span>{selectedService?.nom}</span>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <CalendarDays className="h-5 w-5 text-sage" />
-                    <span>{selectedDate?.toLocaleDateString("fr-FR")}</span>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <Clock className="h-5 w-5 text-sage" />
-                    <span>{selectedTime}</span>
-                  </div>
-
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between items-center text-lg font-semibold">
-                      <span>Total:</span>
-                      <span className="text-sage">{selectedService?.prix} Ar</span>
-                    </div>
+                  <div className="flex items-center space-x-3"><User className="h-5 w-5 text-sage" /><span>{selectedService?.nom}</span></div>
+                  <div className="flex items-center space-x-3"><CalendarDays className="h-5 w-5 text-sage" /><span>{selectedDate?.toLocaleDateString("fr-FR")}</span></div>
+                  <div className="flex items-center space-x-3"><Clock className="h-5 w-5 text-sage" /><span>{selectedTime}</span></div>
+                  <div className="border-t pt-3 mt-3 flex justify-between items-center text-lg font-semibold">
+                    <span>Total:</span>
+                    <span className="text-sage">{selectedService?.prix} Ar</span>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Payment Method */}
+              {/* ✅ Mode de paiement dynamique */}
               <div className="space-y-4">
-                <Label className="text-base font-medium">Mode de paiement</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="online"
-                      name="payment"
-                      value="online"
-                      checked={paymentMethod === "online"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <Label htmlFor="online">Payer en ligne maintenant</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="salon"
-                      name="payment"
-                      value="salon"
-                      checked={paymentMethod === "salon"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <Label htmlFor="salon">Payer sur place</Label>
-                  </div>
-                </div>
-              </div>
+  <Label className="text-base font-medium">Mode de paiement</Label>
+  <div className="flex flex-wrap gap-4 mt-2">
+    {paymentMethods?.length > 0 ? (
+      paymentMethods.map((method) => (
+        <div key={method.id} className="flex items-center space-x-2">
+          <input
+            type="radio"
+            id={`payment-${method.id}`}
+            name="payment"
+            value={method.nom.toLowerCase()}
+            checked={paymentMethod === method.nom.toLowerCase()}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+          />
+          <Label htmlFor={`payment-${method.id}`}>{method.nom}</Label>
+        </div>
+      ))
+    ) : (
+      <p className="text-gray-500 text-sm">Aucun mode de paiement disponible</p>
+    )}
+  </div>
+</div>
 
-              {paymentMethod === "online" && (
+
+              {/* Stripe */}
+              {paymentMethod === "stripe" && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -487,14 +395,9 @@ function AppointmentModalContent({
                                 color: "#32325d",
                                 fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
                                 fontSmoothing: "antialiased",
-                                "::placeholder": {
-                                  color: "#aab7c4"
-                                }
+                                "::placeholder": { color: "#aab7c4" },
                               },
-                              invalid: {
-                                color: "#e53e3e",
-                                iconColor: "#e53e3e"
-                              },
+                              invalid: { color: "#e53e3e", iconColor: "#e53e3e" },
                             },
                           }}
                         />
@@ -506,74 +409,48 @@ function AppointmentModalContent({
             </div>
           )}
 
-          {/* Confirmation Step */}
+          {/* Confirmation */}
           {step === 4 && isConfirmed && (
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
               </div>
               <h2 className="text-2xl font-semibold text-green-800">Réservation confirmée !</h2>
               <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-green-800">
-                  Votre rendez-vous pour <strong>{selectedService?.nom}</strong>
-                </p>
-                <p className="text-green-700">
-                  le {selectedDate?.toLocaleDateString("fr-FR")} à {selectedTime}
-                </p>
-                <p className="text-green-600 mt-2">
-                  Un email de confirmation vous a été envoyé à {clientInfo.email}
-                </p>
+                <p className="text-green-800">Votre rendez-vous pour <strong>{selectedService?.nom}</strong></p>
+                <p className="text-green-700">le {selectedDate?.toLocaleDateString("fr-FR")} à {selectedTime}</p>
+                <p className="text-green-600 mt-2">Un email de confirmation vous a été envoyé à {clientInfo.email}</p>
               </div>
-              <Button
-                onClick={handleClose}
-                className="bg-sage hover:bg-green-800 text-white w-full"
-              >
-                Fermer
-              </Button>
+              <Button onClick={handleClose} className="bg-sage hover:bg-green-800 text-white w-full">Fermer</Button>
             </div>
           )}
 
-          {/* Navigation buttons */}
+          {/* Navigation */}
           {isshowbtn && (
             <div className="flex justify-between pt-6">
-              <Button variant="outline" onClick={handlePrevious} disabled={step === 1}>
-                Précédent
-              </Button>
-
+              <Button variant="outline" onClick={handlePrevious} disabled={step === 1}>Précédent</Button>
               {step < 4 ? (
-                <Button
-                  onClick={handleNext}
-                  disabled={
-                    (step === 1 && !selectedService) ||
-                    (step === 2 && (!selectedDate || !selectedTime)) ||
-                    (step === 3 && (!clientInfo.firstName || !clientInfo.email))
-                  }
-                  className="bg-sage hover:bg-sage/90"
-                >
+                <Button onClick={handleNext} disabled={
+                  (step === 1 && !selectedService) ||
+                  (step === 2 && (!selectedDate || !selectedTime)) ||
+                  (step === 3 && (!clientInfo.firstName || !clientInfo.email))
+                } className="bg-sage hover:bg-sage/90">
                   Suivant
                 </Button>
               ) : (
                 <Button
                   onClick={handleConfirmReservation}
-                  disabled={!paymentMethod || (paymentMethod === "online" && (!stripe || !elements))}
+                  disabled={!paymentMethod || (paymentMethod === "stripe" && (!stripe || !elements))}
                   className="bg-sage hover:bg-sage/90"
                 >
-                  {paymentMethod === "online" ? "Payer et confirmer" : "Confirmer le rendez-vous"}
+                  {paymentMethod === "stripe" ? "Payer et confirmer" : "Confirmer le rendez-vous"}
                 </Button>
               )}
             </div>
           )}
         </div>
       </DialogContent>
-      <ErrorNotification
-        show={notification.show}
-        message={notification.message}
-        onClose={hideNotification}
-        duration={4000} // 4 secondes
-      />
-
+      <ErrorNotification show={notification.show} message={notification.message} onClose={hideNotification} duration={4000} />
     </Dialog>
   )
 }

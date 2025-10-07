@@ -26,6 +26,7 @@ export default function ServicesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [services, setServices] = useState<Service[]>([])
+  const [paymentMethods, setPaymentMethods] = useState([])
 
   // Pagination state pour chaque catégorie
   const [categoryPages, setCategoryPages] = useState<{ [key: number]: number }>({})
@@ -72,9 +73,20 @@ export default function ServicesPage() {
       }
     }
 
+    const fetchPayementsMethods = async () => {
+      try {
+        const { data } = await api.get("/api/mode-paiements")
+        console.log("data payment method", data)
+        setPaymentMethods(data)
+      } catch (err) {
+        console.error("Erreur lors de la methode de payement :", err)
+      }
+    }
+
     fetchServices()
     fetchCategories()
     fetchForfaits()
+    fetchPayementsMethods()
   }, [])
 
   const servicesPerPage = 3
@@ -162,8 +174,8 @@ export default function ServicesPage() {
                         })
                       }
                       className={`text-white px-4 py-2 rounded-md font-medium transition-colors duration-200 ${(categoryPages[category.id] || 1) === 1
-                          ? "bg-gray-300 cursor-not-allowed"
-                          : "bg-[rgb(135,169,107)] hover:bg-[rgb(115,145,90)]"
+                        ? "bg-gray-300 cursor-not-allowed"
+                        : "bg-[rgb(135,169,107)] hover:bg-[rgb(115,145,90)]"
                         }`}
                     >
                       &lt;--
@@ -178,8 +190,8 @@ export default function ServicesPage() {
                         })
                       }
                       className={`text-white px-4 py-2 rounded-md font-medium transition-colors duration-200 ${(categoryPages[category.id] || 1) === totalPages
-                          ? "bg-gray-300 cursor-not-allowed"
-                          : "bg-[rgb(135,169,107)] hover:bg-[rgb(115,145,90)]"
+                        ? "bg-gray-300 cursor-not-allowed"
+                        : "bg-[rgb(135,169,107)] hover:bg-[rgb(115,145,90)]"
                         }`}
                     >
                       --&gt;
@@ -290,6 +302,7 @@ export default function ServicesPage() {
             initialService={preSelectedService}
             services={!preSelectedService ? services : []}
             initialStep={initialStep}
+            paymentMethods={paymentMethods}
           />
         )}
       </Elements>
@@ -299,6 +312,7 @@ export default function ServicesPage() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           initialPackage={selectedPackage}
+           paymentMethods={paymentMethods}
         />
       </Elements>
 
