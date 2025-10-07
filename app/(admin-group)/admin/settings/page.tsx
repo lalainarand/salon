@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -53,6 +55,7 @@ type SettingsState = {
 
 export default function SettingsPage() {
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const { user } = useUser();
 
   const [settings, setSettings] = useState<SettingsState>({
     salonName: "",
@@ -81,7 +84,7 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const { data } = await api.get("/api/settings");
-      console.log('resulatats de settings',data)
+      console.log('resulatats de settings', data)
       const mappedOpeningHours: OpeningHours = {};
       data.horaireOuverture.forEach((h: any) => {
         mappedOpeningHours[h.jour.toLowerCase()] = {
@@ -172,10 +175,16 @@ export default function SettingsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
           <p className="text-gray-600 mt-1">Configurez les paramètres de votre salon</p>
         </div>
-        <Button onClick={handleSave} className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-          <Save className="w-4 h-4 mr-2" />
-          Sauvegarder
-        </Button>
+        {can(user, "Modifier Paramètres") && (
+          <Button
+            onClick={handleSave}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Sauvegarder
+          </Button>
+        )}
+
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">

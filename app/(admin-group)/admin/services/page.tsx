@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api"
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -61,6 +63,8 @@ export default function ServicesPage() {
   const [originalStatus, setOriginalStatus] = useState<number | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
   const [categories, setCategories] = useState<{ id: number; nom: string }[]>([])
+  const { user } = useUser();
+
 
   // --- Pagination ---
   const [currentPage, setCurrentPage] = useState(1)
@@ -177,13 +181,16 @@ export default function ServicesPage() {
           <p className="text-gray-600 mt-1">Gérez votre catalogue de services</p>
         </div>
         <div className="flex justify-end mb-4">
-          <Button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau Service
-          </Button>
+          {can(user, "Créer Services") && (
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nouveau Service
+            </Button>
+          )}
+
         </div>
       </div>
 
@@ -194,7 +201,7 @@ export default function ServicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Services</p>
-<p className="text-2xl font-bold text-gray-900">{totalServices}</p>
+                <p className="text-2xl font-bold text-gray-900">{totalServices}</p>
               </div>
               <Scissors className="w-8 h-8 text-[rgb(135,169,107)]" />
             </div>
@@ -205,7 +212,7 @@ export default function ServicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Services Actifs</p>
-               <p className="text-2xl font-bold text-gray-900">{totalActifs}</p>
+                <p className="text-2xl font-bold text-gray-900">{totalActifs}</p>
 
               </div>
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -340,30 +347,37 @@ export default function ServicesPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      {can(user, "Modifier Services") && (
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setSelectedService(service)
-                            setIsCreateDialogOpen(true)
+                            setSelectedService(service);
+                            setIsCreateDialogOpen(true);
                           }}
                         >
-                          <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                          <Edit
+                            className="h-4 w-4"
+                            style={{ color: "rgb(150,180,125)" }}
+                          />
                         </Button>
+                      )}
+
+                      {can(user, "Supprimer Services") && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="text-red-600 hover:text-red-700"
                           onClick={() => {
-                            setSelectedServiceId(service.id)
-                            setOpenDeleteDialog(true)
+                            setSelectedServiceId(service.id);
+                            setOpenDeleteDialog(true);
                           }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      </div>
+                      )}
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

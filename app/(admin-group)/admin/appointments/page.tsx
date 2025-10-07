@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -58,6 +60,8 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentFormType[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const { user } = useUser();
+
   const perPage = 10; // rendez-vous par page
 
   // Récupération des services
@@ -154,7 +158,7 @@ export default function AppointmentsPage() {
     fetchServices();
     fetchEmployes();
     fetchUsers();
-    fetchAppointments(1); 
+    fetchAppointments(1);
   }, []);
 
 
@@ -289,16 +293,19 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Rendez-vous</h1>
           <p className="text-gray-600 mt-1">Gérez tous les rendez-vous de votre salon</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedAppointment(null) // important pour vider le formulaire
-            setIsDialogOpen(true)
-          }}
-          className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nouveau Rendez-vous
-        </Button>
+        {can(user, "Créer Rendez-vous") && (
+          <Button
+            onClick={() => {
+              setSelectedAppointment(null);
+              setIsDialogOpen(true);
+            }}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau Rendez-vous
+          </Button>
+        )}
+
 
       </div>
 
@@ -394,27 +401,32 @@ export default function AppointmentsPage() {
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedAppointment(appointment)
-                            setIsDialogOpen(true)
-                          }}
-                        >
-                          <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                        </Button>
+                        {can(user, "Modifier Rendez-vous") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                          </Button>
+                        )}
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteClick(appointment.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {can(user, "Supprimer Rendez-vous") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteClick(appointment.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

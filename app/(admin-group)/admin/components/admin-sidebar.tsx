@@ -1,5 +1,6 @@
 "use client"
 
+import { useUser } from "@/lib/UserContext"
 import { Calendar, Users, Scissors, Settings, BarChart3, UserCheck, Shield, Home, Tag, Star, Crown } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -16,72 +17,80 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
-
-const menuItems = [
-  {
-    title: "Tableau de Bord",
-    url: "/admin",
-    icon: Home,
-  },
-  {
-    title: "Specialites",
-    url: "/admin/specialites",
-    icon: Star,
-  },
-  {
-    title: "Catégories",
-    url: "/admin/categories",
-    icon: Tag,
-  },
-  {
-    title: "Services",
-    url: "/admin/services",
-    icon: Scissors,
-  },
-
-  {
-    title: "Clients",
-    url: "/admin/users",
-    icon: Users,
-  },
-  {
-    title: "Employés",
-    url: "/admin/employees",
-    icon: UserCheck,
-  },
-
-
-
-  {
-    title: "Rendez-vous",
-    url: "/admin/appointments",
-    icon: Calendar,
-  },
-  {
-    title: "Forfaits",
-    url: "/admin/forfaits",
-    icon: BarChart3,
-  },
- 
-  {
-    title: "Rôles",
-    url: "/admin/roles",
-    icon: Crown,
-  },
-   {
-    title: "Permissions",
-    url: "/admin/permissions",
-    icon: Shield,
-  },
-  {
-    title: "Paramètres",
-    url: "/admin/settings",
-    icon: Settings,
-  },
-]
+import { can } from "@/lib/permissions"
 
 export function AdminSidebar() {
+  const { user } = useUser()
   const pathname = usePathname()
+
+  const menuItems = [
+    {
+      title: "Tableau de Bord",
+      url: "/admin",
+      icon: Home,
+      permission: "Voir Tableau de Bord",
+    },
+    {
+      title: "Specialites",
+      url: "/admin/specialites",
+      icon: Star,
+      permission: "Voir Specialites",
+    },
+    {
+      title: "Catégories",
+      url: "/admin/categories",
+      icon: Tag,
+      permission: "Voir Catégories",
+    },
+    {
+      title: "Services",
+      url: "/admin/services",
+      icon: Scissors,
+      permission: "Voir Services",
+    },
+    {
+      title: "Clients",
+      url: "/admin/users",
+      icon: Users,
+      permission: "Voir Clients",
+    },
+    {
+      title: "Employés",
+      url: "/admin/employees",
+      icon: UserCheck,
+      permission: "Voir Employés",
+    },
+    {
+      title: "Rendez-vous",
+      url: "/admin/appointments",
+      icon: Calendar,
+      permission: "Voir Rendez-vous",
+    },
+    {
+      title: "Forfaits",
+      url: "/admin/forfaits",
+      icon: BarChart3,
+      permission: "Voir Forfaits",
+    },
+    {
+      title: "Rôles",
+      url: "/admin/roles",
+      icon: Crown,
+      permission: "Voir Rôles",
+    },
+    {
+      title: "Permissions",
+      url: "/admin/permissions",
+      icon: Shield,
+      permission: "Voir Permissions",
+    },
+    {
+      title: "Paramètres",
+      url: "/admin/settings",
+      icon: Settings,
+      permission: "Voir Paramètres",
+    },
+  ]
 
   return (
     <Sidebar className="border-r border-[rgb(135,169,107)]/20">
@@ -101,22 +110,24 @@ export function AdminSidebar() {
           <SidebarGroupLabel className="text-[rgb(135,169,107)] font-semibold">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    className={cn(
-                      "hover:bg-[rgb(135,169,107)]/10 hover:text-[rgb(135,169,107)]",
-                      pathname === item.url && "bg-[rgb(135,169,107)]/15 text-[rgb(135,169,107)] font-medium",
-                    )}
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) =>
+                can(user, item.permission) ? (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      className={cn(
+                        "hover:bg-[rgb(135,169,107)]/10 hover:text-[rgb(135,169,107)]",
+                        pathname === item.url && "bg-[rgb(135,169,107)]/15 text-[rgb(135,169,107)] font-medium",
+                      )}
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

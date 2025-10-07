@@ -1,6 +1,8 @@
 "use client";
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ const SpecialiteModal: React.FC<{
   onSave: (specialite: Partial<Specialite>) => void;
 }> = ({ open, onOpenChange, specialite, onSave }) => {
   const [formData, setFormData] = useState({ nom: "", statut: 1 });
+
 
   useEffect(() => {
     if (specialite) {
@@ -135,6 +138,8 @@ const SpecialitesPage: React.FC = () => {
   const [pendingToggleSpecialite, setPendingToggleSpecialite] = useState<Specialite | null>(null);
   const [specialiteToDelete, setSpecialiteToDelete] = useState<Specialite | null>(null);
   const { notification, showSuccess, hideNotification } = useSuccessNotification();
+  const { user } = useUser();
+
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -221,16 +226,19 @@ const SpecialitesPage: React.FC = () => {
             Gérez les spécialités - ajout, modification et suppression
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingSpecialite(null);
-            setIsModalOpen(true);
-          }}
-          style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
-          className="hover:opacity-90"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Ajouter Spécialité
-        </Button>
+        {can(user, "Créer Specialites") && (
+          <Button
+            onClick={() => {
+              setEditingSpecialite(null);
+              setIsModalOpen(true);
+            }}
+            style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
+            className="hover:opacity-90"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Ajouter Spécialité
+          </Button>
+        )}
+
       </div>
 
       {/* Tableau */}
@@ -270,30 +278,36 @@ const SpecialitesPage: React.FC = () => {
                   <TableCell>{new Date(specialite.updated_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingSpecialite(specialite);
-                          setIsModalOpen(true);
-                        }}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSpecialiteToDelete(specialite);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        className="h-8 w-8"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      {can(user, "Modifier Specialites") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingSpecialite(specialite);
+                            setIsModalOpen(true);
+                          }}
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                        </Button>
+                      )}
+
+                      {can(user, "Supprimer Specialites") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSpecialiteToDelete(specialite);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>

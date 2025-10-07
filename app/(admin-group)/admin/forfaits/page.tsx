@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,6 +37,8 @@ export default function ForfaitPage() {
   const [packageToDelete, setPackageToDelete] = useState<PackageType | null>(null)
   const [packageToToggle, setPackageToToggle] = useState<PackageType | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const { user } = useUser();
+
 
   // Récupération des services depuis l'API
   const fetchServices = async () => {
@@ -150,15 +154,18 @@ export default function ForfaitPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Forfaits</h1>
           <p className="text-gray-600">Créez et gérez les packs de services</p>
         </div>
-        <Button
-          className="bg-[rgb(156,183,132)] hover:bg-[rgb(156,183,132)]/90"
-          onClick={() => {
-            setSelectedPackage(null)
-            setOpenDialog(true)
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Nouveau Forfait
-        </Button>
+        {can(user, "Créer Forfaits") && (
+          <Button
+            className="bg-[rgb(156,183,132)] hover:bg-[rgb(156,183,132)]/90"
+            onClick={() => {
+              setSelectedPackage(null);
+              setOpenDialog(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Nouveau Forfait
+          </Button>
+        )}
+
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -172,25 +179,32 @@ export default function ForfaitPage() {
                     checked={pkg.statut}
                     onCheckedChange={() => handleToggleClick(pkg)}
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setSelectedPackage(pkg)
-                      setOpenDialog(true)
-                    }}
-                  >
-                    <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDeleteClick(pkg)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+
+                  {can(user, "Modifier Forfaits") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedPackage(pkg);
+                        setOpenDialog(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                    </Button>
+                  )}
+
+                  {can(user, "Supprimer Forfaits") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteClick(pkg)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
+
               </div>
               <CardDescription className="mt-1 text-sm text-gray-600">
                 Prix : {pkg.prix}Ar

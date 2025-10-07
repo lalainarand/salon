@@ -1,6 +1,8 @@
 "use client";
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,8 +45,9 @@ const PermissionsPage: React.FC = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [permissionToDelete, setPermissionToDelete] = useState<Permission | null>(null);
-    const { notification, showSuccess, hideNotification } = useSuccessNotification()
-  
+  const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const { user } = useUser();
+
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,6 +57,7 @@ const PermissionsPage: React.FC = () => {
   const fetchPermissions = async (page = 1) => {
     try {
       const { data } = await api.get(`/api/permission?page=${page}`);
+      console.log('Données reçues permission:', data);
       setPermissions(data.data.data);
       setCurrentPage(data.data.current_page);
       setTotalPages(data.data.last_page);
@@ -73,11 +77,11 @@ const PermissionsPage: React.FC = () => {
       if (permissionData.id) {
         // Update
         await api.put(`/api/permission/${permissionData.id}`, permissionData);
-         showSuccess(`Permission modifié avec succès`);
+        showSuccess(`Permission modifié avec succès`);
       } else {
         // Create
         await api.post(`/api/permission`, permissionData);
-          showSuccess(`Permission ajouté avec succès`);
+        showSuccess(`Permission ajouté avec succès`);
       }
       fetchPermissions(currentPage);
     } catch (error) {
@@ -111,16 +115,19 @@ const PermissionsPage: React.FC = () => {
             Gérez les permissions du système - ajout, modification et suppression
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingPermission(null);
-            setIsModalOpen(true);
-          }}
-          style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter Permission
-        </Button>
+        {can(user, "Créer Permissions") && (
+          <Button
+            onClick={() => {
+              setEditingPermission(null);
+              setIsModalOpen(true);
+            }}
+            style={{ backgroundColor: "rgb(150,180,125)", color: "white" }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter Permission
+          </Button>
+        )}
+
       </div>
 
       {/* Table */}
@@ -156,30 +163,36 @@ const PermissionsPage: React.FC = () => {
                   <TableCell>{new Date(permission.updated_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingPermission(permission);
-                          setIsModalOpen(true);
-                        }}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setPermissionToDelete(permission);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        className="h-8 w-8"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      {can(user, "Modifier Permissions") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingPermission(permission);
+                            setIsModalOpen(true);
+                          }}
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                        </Button>
+                      )}
+
+                      {can(user, "Supprimer Permissions") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setPermissionToDelete(permission);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>

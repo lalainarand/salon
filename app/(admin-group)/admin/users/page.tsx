@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,6 +32,8 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const { user } = useUser();
+
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -118,10 +122,16 @@ export default function UsersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Clients</h1>
           <p className="text-gray-600 mt-1">Gérez votre base de données clients</p>
         </div>
-        <Button onClick={handleCreateUser} className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un client
-        </Button>
+        {can(user, "Créer Clients") && (
+          <Button
+            onClick={handleCreateUser}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un client
+          </Button>
+        )}
+
       </div>
 
       {/* Recherche */}
@@ -178,19 +188,29 @@ export default function UsersPage() {
                     <TableCell className="font-medium">{user.totalSpent}Ar</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)}>
-                          <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleClickDelete(user.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {can(user, "Modifier Clients") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                          </Button>
+                        )}
+
+                        {can(user, "Supprimer Clients") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleClickDelete(user.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

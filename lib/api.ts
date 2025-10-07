@@ -18,4 +18,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Intercepteur pour gérer les erreurs globalement (403 Forbidden)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 403) {
+      // Redirige l'utilisateur vers la page 403
+      if (typeof window !== "undefined") {
+        window.location.href = "/admin/403";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

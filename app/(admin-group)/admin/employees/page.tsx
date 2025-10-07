@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api";
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -66,6 +68,8 @@ export default function EmployeesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { notification, showSuccess, hideNotification } = useSuccessNotification();
+  const { user } = useUser();
+
 
   // Fetch roles
   const fetchRoles = async () => {
@@ -142,7 +146,7 @@ export default function EmployeesPage() {
       if (data.id) {
         // Edition d'un employé
         await api.post(`/api/employees/edit/${data.id}`, data);
-          console.log('Modification de employé', data);
+        console.log('Modification de employé', data);
         showSuccess(`Modification des informations de ${data.name} succès`);
       } else {
         // Création d'un nouvel employé
@@ -172,16 +176,19 @@ export default function EmployeesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Employés</h1>
           <p className="text-gray-600 mt-1">Gérez votre équipe et leurs plannings</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedEmployee(null);
-            setIsDialogOpen(true);
-          }}
-          className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nouvel Employé
-        </Button>
+        {can(user, "Créer Employés") && (
+          <Button
+            onClick={() => {
+              setSelectedEmployee(null);
+              setIsDialogOpen(true);
+            }}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvel Employé
+          </Button>
+        )}
+
       </div>
 
       {/* Filters */}
@@ -280,30 +287,35 @@ export default function EmployeesPage() {
                       <TableCell className="text-center">{employee.appointmentsThisMonth}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedEmployee(employee);
-                              setIsDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              setSelectedEmployeeId(employee.id)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {can(user, "Modifier Employés") && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedEmployee(employee);
+                                setIsDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                            </Button>
+                          )}
 
+                          {can(user, "Supprimer Employés") && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => {
+                                setSelectedEmployeeId(employee.id);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
+
                     </TableRow>
                   ))
                 )}

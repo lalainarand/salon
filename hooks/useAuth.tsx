@@ -71,12 +71,20 @@ export function useAuth() {
     setError(null);
     try {
       await api.post("/api/logout");
+
+      // Suppression du token dans le localStorage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+
+      // Suppression du cookie (doit correspondre au nom et au path utilisés à la création)
+      document.cookie = "token=; path=/; max-age=0; Secure; SameSite=Lax";
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Erreur lors de la déconnexion");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return { register, login, logout, loading, error };
 }

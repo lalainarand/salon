@@ -48,6 +48,7 @@ export default function RolesPage() {
   const fetchRoles = async () => {
     try {
       const { data } = await api.get(`/api/role`);
+      console.log('Données reçues roles:', data);
       setRoles(data)
     } catch (error) {
       console.error("Erreur lors du fetch des rôles:", error);

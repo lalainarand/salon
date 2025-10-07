@@ -1,6 +1,8 @@
 "use client"
 
 import api from "@/lib/api"
+import { useUser } from "@/lib/UserContext";
+import { can } from "@/lib/permissions";
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,6 +40,7 @@ export default function CategoriesPage() {
   const [dialogOpenId, setDialogOpenId] = useState<number | null>(null)
   const [dialogDeleteId, setDialogDeleteId] = useState<number | null>(null)
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
+  const { user } = useUser();
   const [stats, setStats] = useState({
     total_services: 0,
     moyenne_services_par_categorie: 0,
@@ -142,13 +145,16 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Catégories</h1>
           <p className="text-gray-600 mt-1">Organisez vos services par catégories</p>
         </div>
-        <Button
-          onClick={handleCreateCategory}
-          className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nouvelle Catégorie
-        </Button>
+        {can(user, "Créer Catégories") && (
+          <Button
+            onClick={handleCreateCategory}
+            className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvelle Catégorie
+          </Button>
+        )}
+
       </div>
 
       {/* Stats Cards */}
@@ -269,24 +275,30 @@ export default function CategoriesPage() {
                     </span>
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEditCategory(category)}
-                    >
-                      <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => setDialogDeleteId(category.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {can(user, "Modifier Catégories") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditCategory(category)}
+                      >
+                        <Edit className="h-4 w-4" style={{ color: "rgb(150,180,125)" }} />
+                      </Button>
+                    )}
+
+                    {can(user, "Supprimer Catégories") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => setDialogDeleteId(category.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
+
 
               {/* Dialog suppression */}
               <ConfirmDeleteDialog
