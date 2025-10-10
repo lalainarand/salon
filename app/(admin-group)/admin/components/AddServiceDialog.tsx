@@ -26,18 +26,20 @@ export interface ServiceFormValues {
   nom: string
   categorie_id: number
   duree_minutes: number
-  prix: number
+  prix: number | string
   description: string
+  imageFile?: File
 }
 
 export interface ServiceType extends ServiceFormValues {
-  statut: number
-  popularity: number
+  statut?: number
+  popularity?: number
   categorie?: {
     id: number
     nom: string
     couleur?: string
   }
+  image_url?: string 
 }
 
 export interface CategoryType {
@@ -55,7 +57,6 @@ interface AddServiceDialogProps {
   initialData?: ServiceType | null
 }
 
-
 export const AddServiceDialog = ({
   open,
   onOpenChange,
@@ -72,9 +73,13 @@ export const AddServiceDialog = ({
     description: "",
   })
 
-  // ✅ Préremplir en mode "edit"
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  // Préremplir en mode edit
   useEffect(() => {
     if (initialData) {
+      console.log("Initial Data:", initialData) // Debug log
       setFormData({
         id: initialData.id,
         nom: initialData.nom || "",
@@ -83,6 +88,9 @@ export const AddServiceDialog = ({
         prix: Number(initialData.prix) || 0,
         description: initialData.description || "",
       })
+      if (initialData.image_url) {
+        setPreviewUrl(`${initialData.image_url}`)
+      }
     } else {
       setFormData({
         nom: "",
@@ -91,6 +99,8 @@ export const AddServiceDialog = ({
         prix: 0,
         description: "",
       })
+      setImageFile(null)
+      setPreviewUrl(null)
     }
   }, [initialData])
 
@@ -102,7 +112,7 @@ export const AddServiceDialog = ({
   }
 
   const handleSubmit = () => {
-    onSubmit(formData)
+    onSubmit({ ...formData, imageFile: imageFile ?? undefined })
   }
 
   return (
@@ -182,6 +192,28 @@ export const AddServiceDialog = ({
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
             />
+          </div>
+
+          {/* Image */}
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="image">Image</Label>
+            <input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                setImageFile(file)
+                if (file) setPreviewUrl(URL.createObjectURL(file))
+              }}
+            />
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="mt-2 max-h-40 object-cover rounded-md"
+              />
+            )}
           </div>
         </div>
 

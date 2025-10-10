@@ -13,4 +13,5 @@ export interface Service {
   description: string;
   statut: number;
   categorie?: Categorie;
+  image_url?:string;
 }

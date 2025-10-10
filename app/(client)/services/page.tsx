@@ -67,6 +67,7 @@ export default function ServicesPage() {
       try {
         const token = localStorage.getItem("token")
         const { data } = await api.get("/api/services")
+        console.log("data services", data)
         setServices(data)
       } catch (err) {
         console.error("Erreur lors de la récupération des services :", err)
@@ -126,7 +127,7 @@ export default function ServicesPage() {
                   {visibleServices.map((service: Service, serviceIndex: number) => (
                     <Card key={serviceIndex} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
                       <Image
-                        src={`coiffure${Math.floor(Math.random() * 8) + 1}.jpg`}
+                        src={service.image_url ? `${service.image_url}` : "/placeholder-image.png"}
                         alt={service.nom}
                         width={400}
                         height={250}

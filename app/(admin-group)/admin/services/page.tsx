@@ -133,14 +133,27 @@ export default function ServicesPage() {
   // --- Sauvegarde (ajout / modif) ---
   const handleSaveService = async (data: ServiceFormValues) => {
     try {
+      const formData = new FormData()
+      formData.append("nom", data.nom)
+      formData.append("categorie_id", String(data.categorie_id))
+      formData.append("duree_minutes", String(data.duree_minutes))
+      formData.append("prix", String(data.prix))
+      formData.append("description", data.description)
+
+      if (data.imageFile) {
+        formData.append("image", data.imageFile)
+      }
+
       if (selectedService) {
-        await api.put(`/api/services/${selectedService.id}`, data)
-        console.log('modification des services', data)
-        showSuccess(`Modification du service succès`)
+        await api.post(`/api/services/${selectedService.id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        showSuccess("Modification du service réussie")
       } else {
-        await api.post(`/api/services/`, data)
-        console.log('creation des services', data)
-        showSuccess(`Création du service  succès`)
+        await api.post("/api/services", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        showSuccess("Création du service réussie")
       }
 
       fetchServices()
@@ -150,6 +163,8 @@ export default function ServicesPage() {
       console.error("Erreur lors de la sauvegarde", error)
     }
   }
+
+
 
   // --- Suppression ---
   const handleConfirmDelete = async () => {
