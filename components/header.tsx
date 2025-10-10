@@ -21,6 +21,16 @@ type Service = {
   duration: string;
 };
 
+interface Settings {
+  nom_salon?: string
+  description?: string
+  adresse?: string
+  telephone?: string
+  email?: string
+  logo?: string
+  logo_url?: string
+}
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
@@ -29,6 +39,9 @@ export default function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const { notification, showSuccess, hideNotification } = useSuccessNotification();
   const [services, setServices] = useState<Service[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [paymentMethods, setPaymentMethods] = useState([])
+
   const { logout } = useAuth()
 
   useEffect(() => {
@@ -60,7 +73,29 @@ export default function Header() {
       }
     };
 
+    const fetchPayementsMethods = async () => {
+      try {
+        const { data } = await api.get("/api/mode-paiements")
+        console.log("data payment method", data)
+        setPaymentMethods(data)
+      } catch (err) {
+        console.error("Erreur lors de la methode de payement :", err)
+      }
+    }
+
+
+    const fetchFooterData = async () => {
+      try {
+        const { data } = await api.get("/api/var")
+        setSettings(data.settings)
+      } catch (err) {
+        console.error("Erreur lors de la récupération du footer:", err)
+      }
+    }
+
+    fetchFooterData()
     fetchServices();
+    fetchPayementsMethods();
   }, []);
 
 
@@ -94,7 +129,7 @@ export default function Header() {
             <div className="flex items-center space-x-3">
               <Link href="/" className="flex items-center">
                 <img
-                  src="/logo.png"
+                  src={settings?.logo_url}
                   alt="Logo Beauty Salon"
                   className="h-10 w-10 object-contain"
                 />
@@ -241,6 +276,8 @@ export default function Header() {
               isOpen={true} // Toujours true ici
               onClose={() => setIsAppointmentModalOpen(false)}
               services={services}
+              paymentMethods={paymentMethods}
+
             />
           </Elements>
         )}

@@ -12,6 +12,7 @@ interface Settings {
   telephone?: string
   email?: string
   logo?: string
+  logo_url?: string
 }
 
 interface Horaire {
@@ -49,7 +50,7 @@ export default function Footer() {
           <div>
             {settings?.logo && (
               <img
-                src={settings.logo}
+                src={settings.logo_url}
                 alt={settings.nom_salon || "Logo salon"}
                 className="w-24 h-24 mb-4 object-contain"
               />

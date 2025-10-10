@@ -15,11 +15,30 @@ import { MapPin, Phone, Mail, Clock, Instagram, Facebook } from "lucide-react"
 import AppointmentModal from "@/components/appointment-modal"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
 
+interface Settings {
+  nom_salon?: string
+  description?: string
+  adresse?: string
+  telephone?: string
+  email?: string
+  logo?: string
+  logo_url?: string
+}
 
+interface Horaire {
+  id: number
+  jour: string
+  heure_ouverture: string
+  heure_fermeture: string
+  ouvert: number
+}
 
 export default function ContactPage() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [services, setServices] = useState<Service[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [horaires, setHoraires] = useState<Horaire[]>([])
+
   const { notification, showSuccess, hideNotification } = useSuccessNotification()
 
   // State du formulaire
@@ -31,6 +50,14 @@ export default function ContactPage() {
     subject: "",
     message: ""
   })
+
+  const [footerData, setFooterData] = useState({
+    address: "",
+    phone: "",
+    email: "",
+    horaires: [],
+    logo_url: "",
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -48,6 +75,77 @@ export default function ContactPage() {
   const isFormValid = () => {
     return formData.firstName && formData.lastName && formData.email && formData.subject && formData.message
   }
+
+  function formatHoraires(horaires: Horaire[]) {
+  if (!horaires || horaires.length === 0) return ["Horaires non disponibles"];
+
+  // Trier les jours (lundi -> dimanche)
+  const joursOrdre = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+  const sorted = [...horaires].sort((a,b) => joursOrdre.indexOf(a.jour) - joursOrdre.indexOf(b.jour));
+
+  const lines: string[] = [];
+  let rangeStart: string | null = null;
+  let rangeEnd: string | null = null;
+  let currentStartTime: string | null = null;
+  let currentEndTime: string | null = null;
+
+  sorted.forEach((h, idx) => {
+    const jour = h.jour.charAt(0).toUpperCase() + h.jour.slice(1);
+
+    if (!h.ouvert) {
+      // Si journée fermée, on termine le range précédent si existant
+      if (rangeStart) {
+        if (rangeStart === rangeEnd) {
+          lines.push(`${rangeStart} : ${currentStartTime} - ${currentEndTime}`);
+        } else {
+          lines.push(`${rangeStart} au ${rangeEnd} : ${currentStartTime} - ${currentEndTime}`);
+        }
+        rangeStart = null;
+        rangeEnd = null;
+        currentStartTime = null;
+        currentEndTime = null;
+      }
+      // puis on ajoute le jour fermé
+      lines.push(`${jour} : Fermé`);
+      return;
+    }
+
+    const hDebut = h.heure_ouverture.slice(0,5);
+    const hFin = h.heure_fermeture.slice(0,5);
+
+    if (currentStartTime === hDebut && currentEndTime === hFin) {
+      // prolonger le range
+      rangeEnd = jour;
+    } else {
+      // push le range précédent
+      if (rangeStart) {
+        if (rangeStart === rangeEnd) {
+          lines.push(`${rangeStart} : ${currentStartTime} - ${currentEndTime}`);
+        } else {
+          lines.push(`${rangeStart} au ${rangeEnd} : ${currentStartTime} - ${currentEndTime}`);
+        }
+      }
+      // démarrer nouveau range
+      rangeStart = jour;
+      rangeEnd = jour;
+      currentStartTime = hDebut;
+      currentEndTime = hFin;
+    }
+
+    // push final si dernier élément
+    if (idx === sorted.length -1 && rangeStart) {
+      if (rangeStart === rangeEnd) {
+        lines.push(`${rangeStart} : ${currentStartTime} - ${currentEndTime}`);
+      } else {
+        lines.push(`${rangeStart} au ${rangeEnd} : ${currentStartTime} - ${currentEndTime}`);
+      }
+    }
+  });
+
+  return lines;
+}
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +181,26 @@ export default function ContactPage() {
         console.error("Erreur lors de la récupération des services:", err);
       }
     };
+
+
+    const fetchFooterData = async () => {
+      try {
+        const { data } = await api.get("/api/var");
+
+        setFooterData({
+          address: data.settings.address || "",
+          phone: data.settings.telephone || "",
+          email: data.settings.email || "",
+          horaires: data.horaireOuverture || [],
+          logo_url: data.settings.logo_url || "",
+        });
+      } catch (err) {
+        console.error("Erreur lors de la récupération du footer:", err);
+      }
+    };
+
+
+    fetchFooterData()
     fetchServices();
   }, []);
 
@@ -90,24 +208,26 @@ export default function ContactPage() {
     {
       icon: MapPin,
       title: "Adresse",
-      details: ["Lot II BIS", "Ankadindramamy, Tananarive"],
+      details: [footerData.address || "Adresse non disponible"],
     },
     {
       icon: Phone,
       title: "Téléphone",
-      details: ["034 85 146 92", "032 62 641 88"],
+      details: [footerData.phone || "Non renseigné"],
     },
     {
       icon: Mail,
       title: "Email",
-      details: ["contact@beautysalon.fr", "rdv@beautysalon.fr"],
+      details: [footerData.email || "Non renseigné"],
     },
     {
       icon: Clock,
       title: "Horaires",
-      details: ["Lun - Ven: 9h - 19h", "Sam: 9h - 17h", "Dim: Fermé"],
-    },
-  ]
+      details: formatHoraires(footerData.horaires),
+    }
+    ,
+  ];
+
 
   const socialLinks = [
     { icon: Instagram, name: "Instagram", handle: "@beautysalon_paris" },
@@ -130,7 +250,7 @@ export default function ContactPage() {
       </section>
 
       {/* Contact Information */}
-      <section className="py-20 bg-white">
+      <section className="pt-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {contactInfo.map((info, index) => (
@@ -252,7 +372,7 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="bg-gray-200 h-64 rounded-lg flex items-center justify-center mb-6">
-                    <p className="text-gray-500">Carte interactive - 123 Rue de la Beauté, Paris</p>
+                    <p className="text-gray-500">Carte interactive - ankadindramany, Madagascar</p>
                   </div>
                   <div className="space-y-4">
                     <p className="text-gray-600">
@@ -262,8 +382,7 @@ export default function ContactPage() {
                     <div className="space-y-2">
                       <p className="font-semibold text-charcoal">Transports :</p>
                       <ul className="text-gray-600 space-y-1">
-                        <li>• Métro : Ligne 1, 4, 7 - Station Châtelet</li>
-                        <li>• Bus : Lignes 21, 27, 38, 85</li>
+                        <li>• BUs : Ligne 147, 194, E - arret vatosoa</li>
                         <li>• Parking : Parking Rivoli (2 min à pied)</li>
                       </ul>
                     </div>
