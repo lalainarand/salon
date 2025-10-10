@@ -45,6 +45,7 @@ type SettingsState = {
   address: string;
   phone: string;
   email: string;
+  logo_url: string;
   description: string,
   website: string;
   openingHours: OpeningHours;
@@ -63,6 +64,7 @@ export default function SettingsPage() {
     phone: "",
     email: "",
     website: "",
+    logo_url: "",
     description: "",
     openingHours: {},
     paymentMethods: {},
@@ -79,6 +81,10 @@ export default function SettingsPage() {
       description: "",
     },
   });
+
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(settings.logo_url || null)
+
 
   // 🔹 Récupération des settings depuis l'API
   const fetchSettings = async () => {
@@ -107,6 +113,7 @@ export default function SettingsPage() {
         email: data.settings.email,
         description: data.settings.description,
         website: data.settings.site_web,
+        logo_url: data.settings.logo_url,
         openingHours: mappedOpeningHours,
         paymentMethods: mappedPaymentMethods,
         notifications: {
@@ -127,13 +134,19 @@ export default function SettingsPage() {
     }
   };
 
+  // Affiche le logo existant dès qu'on reçoit les settings
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (settings?.logo_url) {
+      setLogoPreview(settings.logo_url);
+    }
+
+      fetchSettings();
+  }, [settings?.logo_url]);
 
   // 🔹 Sauvegarde des settings
   const handleSave = async () => {
     try {
+      // Tu gardes ton payload JSON comme avant
       const payload = {
         settings: {
           nom_salon: settings.salonName,
@@ -159,8 +172,22 @@ export default function SettingsPage() {
         },
       };
 
-      console.log('informations de settings a sauvegarder', payload)
-      await api.put("/api/settings", payload);
+      // 1️⃣ Créer le FormData
+      const formData = new FormData();
+      formData.append("data", JSON.stringify(payload));
+
+      // 2️⃣ Si une image a été sélectionnée, on l’ajoute
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      // 3️⃣ Envoi vers le backend
+      await api.post("/api/settings", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       showSuccess("Paramètres sauvegardés avec succès !");
     } catch (error) {
       console.error("Erreur lors de la sauvegarde :", error);
@@ -280,6 +307,45 @@ export default function SettingsPage() {
                     className="pl-10"
                   />
                 </div>
+
+
+                {/* Logo du salon */}
+                <div className="space-y-2">
+                  <Label htmlFor="logo">Logo du salon</Label>
+                  <Input
+                    id="logo"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setLogoFile(file)
+                        setLogoPreview(URL.createObjectURL(file))
+                      }
+                    }}
+                  />
+
+                  {logoPreview && (
+                    <div className="mt-2">
+                      <img
+                        src={logoPreview}
+                        alt="Aperçu du logo"
+                        className="max-h-40 rounded-md object-contain border"
+                      />
+                      <Button
+                        variant="ghost"
+                        className="mt-2 text-red-500 hover:text-red-700"
+                        onClick={() => {
+                          setLogoFile(null)
+                          setLogoPreview(null)
+                        }}
+                      >
+                        Supprimer
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </CardContent>
 
