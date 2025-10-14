@@ -28,6 +28,7 @@ interface Rdv {
   client: any
   service: any
   forfait: any
+  date: string,
   heure: string
   employee?: string
   status: string
@@ -210,7 +211,7 @@ export default function AdminDashboard() {
                     <p className="text-sm text-gray-600">
                       {rdv.service ? rdv.service.nom : rdv.forfait ? rdv.forfait.nom : "—"}
                     </p>
-                    <p className="text-xs text-gray-500">{rdv.heure} {rdv.employee || ""}</p>
+                    <p className="text-xs text-gray-500">{rdv.date} / {rdv.heure} {rdv.employee || ""}</p>
                   </div>
                   <div>{getStatusBadge(rdv.status)}</div>
                 </div>
