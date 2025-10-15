@@ -21,7 +21,7 @@ interface AppointmentModalProps {
   initialService?: Service | null | undefined;
   initialStep?: number;
   services: any[];
-  paymentMethods: { id: number; nom: string }[]; // ✅ ajouté ici
+  paymentMethods: { id: number; nom: string }[]; 
 }
 
 interface ClientInfo {
@@ -38,7 +38,7 @@ export default function AppointmentModal({
   initialService,
   initialStep,
   services = [],
-  paymentMethods, // ✅ récupéré ici
+  paymentMethods, 
 }: AppointmentModalProps & { initialService?: Service | null }) {
 
   if (!isOpen) return null;
@@ -49,7 +49,7 @@ export default function AppointmentModal({
       initialService={initialService}
       initialStep={initialStep}
       services={services}
-      paymentMethods={paymentMethods} // ✅ passé à l’enfant
+      paymentMethods={paymentMethods} 
     />
   );
 }
@@ -64,7 +64,7 @@ function AppointmentModalContent({
   initialService,
   initialStep,
   services = [],
-  paymentMethods, // ✅ ici aussi
+  paymentMethods,
 }: {
   onClose: () => void;
   initialService?: Service | null;

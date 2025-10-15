@@ -13,26 +13,75 @@ export default function MyAppointmentsModal({ isOpen, onClose, appointments }) {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [newDate, setNewDate] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [pendingCancel, setPendingCancel] = useState(null);
+  const [condition, setCondition] = useState([]);
   const { notification, showSuccess, hideNotification } =
     useSuccessNotification();
 
+  const fetchCondition = async () => {
+    try {
+      const { data } = await api.get("/api/condition");
+      console.log("condition", data);
+      setCondition(data);
+    } catch (err) {
+      console.error("Erreur lors de la recuperation de condition :", err);
+    }
+  };
+
   useEffect(() => {
     setLocalAppointments(appointments);
+    fetchCondition();
   }, [appointments]);
 
   const handleCancel = (appointment) => {
+    if (!condition) return; // Sécurité si les conditions ne sont pas encore chargées
+
     const now = new Date();
     const date = new Date(appointment.date);
     const diffHours = (date.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    if (diffHours < 24) {
-      alert("Annulation à moins de 24h — 50% du montant doit être payé.");
-    } else {
-      alert(`Rendez-vous "${appointment.service}" annulé avec succès.`);
-      setLocalAppointments((prev) =>
-        prev.filter((apt) => apt.id !== appointment.id)
+    // Détermination du seuil et de la pénalité selon la condition dynamique
+    const seuil = condition.heures; // ex: 12h avant
+    const penalite = condition.penalite; // ex: "25.00"
+
+    setPendingCancel({
+      appointment,
+      warning: diffHours < seuil,
+      service: appointment.service,
+      seuil,
+      penalite,
+    });
+  };
+
+  const confirmCancel = async () => {
+    if (!pendingCancel || !cancelReason.trim()) return;
+
+    try {
+      const response = await api.post(
+        `/api/cancel/appointments/${pendingCancel.appointment.id}`,
+        {
+          reason: cancelReason.trim(),
+        }
       );
+
+      if (response.data.status === "success") {
+        showSuccess(response.data.message || "Rendez-vous annulé avec succès");
+
+        setLocalAppointments((prev) =>
+          prev.filter((apt) => apt.id !== pendingCancel.appointment.id)
+        );
+
+        // Reset des states
+        setPendingCancel(null);
+        setCancelReason("");
+      } else {
+        alert("Erreur lors de l'annulation du rendez-vous");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'annulation :", error);
+      setPendingCancel(null);
     }
   };
 
@@ -71,7 +120,9 @@ export default function MyAppointmentsModal({ isOpen, onClose, appointments }) {
       setNewDate("");
       setNewTime("");
 
-      showSuccess(` Date de votre rendez-vous changé au ${newDate} à ${newTime}  success`);
+      showSuccess(
+        ` Date de votre rendez-vous changé au ${newDate} à ${newTime}  success`
+      );
     } catch (error) {
       console.error("Erreur lors du changement de statut", error);
     }
@@ -114,6 +165,53 @@ export default function MyAppointmentsModal({ isOpen, onClose, appointments }) {
               <h2 className="text-2xl font-semibold text-center mb-6 text-[rgb(135,169,107)]">
                 {isEditing ? "Modifier le rendez-vous" : "Mes rendez-vous"}
               </h2>
+
+              {/* === CONFIRMATION ANNULATION === */}
+              {pendingCancel && (
+                <motion.div
+                  className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md mb-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                >
+                  <p className="text-sm text-yellow-800 mb-3">
+                    {pendingCancel.warning
+                      ? `Annulation à moins de ${pendingCancel.seuil}h — ${pendingCancel.penalite}% du montant doit être payé. Merci de préciser la raison.`
+                      : `Confirmez l'annulation du rendez-vous "${pendingCancel.service}" ?`}
+                  </p>
+
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-2 resize-none focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition mb-3"
+                    placeholder="Entrez la raison de l'annulation..."
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    rows={3}
+                  />
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                      onClick={() => {
+                        setPendingCancel(null);
+                        setCancelReason("");
+                      }}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      className={`px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition ${
+                        !cancelReason.trim()
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                      onClick={confirmCancel}
+                      disabled={!cancelReason.trim()}
+                    >
+                      Confirmer
+                    </button>
+                  </div>
+                </motion.div>
+              )}
 
               {/* === LISTE DES RENDEZ-VOUS === */}
               {!isEditing ? (
@@ -158,22 +256,29 @@ export default function MyAppointmentsModal({ isOpen, onClose, appointments }) {
                               </div>
                             </div>
 
-                            {appointment.status === "en_attente" && (
-                              <div className="flex sm:flex-col flex-row sm:space-y-2 space-x-2 sm:space-x-0 sm:w-auto">
-                                <button
-                                  onClick={() => handleReschedule(appointment)}
-                                  className="flex-1 sm:flex-none text-sm px-3 py-2 rounded-full border border-[rgb(135,169,107)] text-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)] hover:text-white transition font-medium cursor-pointer"
-                                >
-                                  Modifier
-                                </button>
-                                <button
-                                  onClick={() => handleCancel(appointment)}
-                                  className="flex-1 sm:flex-none text-sm px-3 py-2 rounded-full border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition font-medium cursor-pointer"
-                                >
-                                  Annuler
-                                </button>
-                              </div>
-                            )}
+                            {appointment.status === "en_attente" &&
+                              new Date(
+                                appointment.date +
+                                  " " +
+                                  (appointment.heure || "00:00")
+                              ) > new Date() && (
+                                <div className="flex sm:flex-col flex-row sm:space-y-2 space-x-2 sm:space-x-0 sm:w-auto">
+                                  <button
+                                    onClick={() =>
+                                      handleReschedule(appointment)
+                                    }
+                                    className="flex-1 sm:flex-none text-sm px-3 py-2 rounded-full border border-[rgb(135,169,107)] text-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)] hover:text-white transition font-medium cursor-pointer"
+                                  >
+                                    Modifier
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancel(appointment)}
+                                    className="flex-1 sm:flex-none text-sm px-3 py-2 rounded-full border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition font-medium cursor-pointer"
+                                  >
+                                    Annuler
+                                  </button>
+                                </div>
+                              )}
                           </div>
                         </motion.div>
                       ))}

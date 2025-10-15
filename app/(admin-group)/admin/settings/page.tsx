@@ -117,12 +117,13 @@ export default function SettingsPage() {
         openingHours: mappedOpeningHours,
         paymentMethods: mappedPaymentMethods,
         notifications: {
-          emailReminders: true,
-          smsReminders: true,
-          confirmationEmails: true,
-          cancellationNotifications: true,
-          reminderHours: data.condition?.heures || 24,
+          emailReminders: data.notifications?.rappels_email === 1,
+          smsReminders: data.notifications?.rappels_sms === 1,
+          confirmationEmails: data.notifications?.confirmation_email === 1,
+          cancellationNotifications: data.notifications?.annulation_notif === 1,
+          reminderHours: data.notifications?.delai_rappel_heures || 24,
         },
+
         cancellationPolicy: {
           freeHours: data.condition?.heures || 24,
           penaltyPercentage: Number(data.condition?.penalite) || 50,
@@ -140,13 +141,13 @@ export default function SettingsPage() {
       setLogoPreview(settings.logo_url);
     }
 
-      fetchSettings();
+    fetchSettings();
   }, [settings?.logo_url]);
 
   // 🔹 Sauvegarde des settings
   const handleSave = async () => {
     try {
-      // Tu gardes ton payload JSON comme avant
+      // 🔸 Construction du payload JSON
       const payload = {
         settings: {
           nom_salon: settings.salonName,
@@ -170,29 +171,49 @@ export default function SettingsPage() {
           penalite: settings.cancellationPolicy.penaltyPercentage,
           description: settings.cancellationPolicy.description,
         },
+        // 🔥 Ajout de la configuration des notifications
+        notifications: {
+          rappels_email: settings.notifications.emailReminders ? 1 : 0,
+          rappels_sms: settings.notifications.smsReminders ? 1 : 0,
+          confirmation_email: settings.notifications.confirmationEmails ? 1 : 0,
+          annulation_notif: settings.notifications.cancellationNotifications ? 1 : 0,
+          delai_rappel_heures: settings.notifications.reminderHours || 24,
+        },
       };
 
-      // 1️⃣ Créer le FormData
+      // 🔸 Préparation du FormData
       const formData = new FormData();
       formData.append("data", JSON.stringify(payload));
 
-      // 2️⃣ Si une image a été sélectionnée, on l’ajoute
       if (logoFile) {
         formData.append("logo", logoFile);
       }
 
-      // 3️⃣ Envoi vers le backend
-      await api.post("/api/settings", formData, {
+      // 🔸 Envoi vers l’API
+      const response = await api.post("/api/settings", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
+      // ✅ Succès
       showSuccess("Paramètres sauvegardés avec succès !");
+      console.log("Réponse du serveur :", response.data);
+
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde :", error);
+      console.error("❌ Erreur lors de la sauvegarde :", error);
+
+      // if (error.response) {
+      //   showError(`Erreur ${error.response.status} : ${error.response.data?.message || "Erreur serveur"}`);
+      // } else if (error.request) {
+      //   showError("Aucune réponse du serveur. Vérifie ta connexion Internet.");
+      // } else {
+      //   showError(`Erreur inattendue : ${error.message}`);
+      // }
     }
   };
+
+
 
   return (
     <div className="space-y-6">
