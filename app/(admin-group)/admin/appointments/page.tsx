@@ -125,7 +125,14 @@ export default function AppointmentsPage() {
             prix: Number(a.service.prix),
             duration: `${a.service.duree_minutes} min`,
             categoryId: a.service.categorie_id,
-            status: "active",
+          }
+          : null,
+        forfait: a.forfait
+          ? {
+            id: a.forfait.id,
+            nom: a.forfait.nom,
+            prix: Number(a.forfait.prix),
+            duration: '',
           }
           : null,
         employee: a.employe
@@ -357,7 +364,7 @@ export default function AppointmentsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Client</TableHead>
-                  <TableHead>Service</TableHead>
+                  <TableHead>Service ou Forfait</TableHead>
                   <TableHead>Employé</TableHead>
                   <TableHead>Date & Heure</TableHead>
                   <TableHead>Durée</TableHead>
@@ -375,7 +382,9 @@ export default function AppointmentsPage() {
                         <p className="text-sm text-gray-500">{appointment.user?.phone}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{appointment.service?.nom}</TableCell>
+                    <TableCell>
+                      {appointment.service?.nom ?? appointment.forfait?.nom ?? "-"}
+                    </TableCell>
                     <TableCell>{appointment.employee?.name}</TableCell>
                     <TableCell>
                       <div>
@@ -383,9 +392,11 @@ export default function AppointmentsPage() {
                         <p className="text-sm text-gray-500">{appointment.time}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{appointment.duration}</TableCell>
+                    <TableCell>
+                      {appointment.service?.duration ?? "-"}
+                    </TableCell>
                     <TableCell className="font-medium">
-                      {appointment.service?.prix}Ar
+                      {(appointment.service?.prix ?? appointment.forfait?.prix) ?? "-"} Ar
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
