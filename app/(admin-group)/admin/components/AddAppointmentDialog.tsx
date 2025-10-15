@@ -147,25 +147,31 @@ export default function AddAppointmentDialog({
             />
           </div>
 
-          {/* Service */}
+          {/* Service / Forfait */}
           <div className="space-y-2">
-            <Label>Service *</Label>
+            <Label>Service ou Forfait *</Label>
             <Select
-              value={form.service?.id ? form.service.id.toString() : ""}
+              value={form.service?.id || ""}
               onValueChange={(value) => {
-                const selected = services.find((s) => s.id.toString() === value)
+                const selected = services.find((s) => s.id === value);
                 if (selected) {
-                  handleChange("service", selected) // met à jour le service sélectionné dans le form
+                  handleChange("service", selected); // met à jour le service sélectionné
                 }
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un service" />
+                <SelectValue placeholder="Sélectionner un service ou forfait" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 {services.map((serv) => (
-                  <SelectItem key={serv.id} value={serv.id.toString()}>
-                    {serv.nom} {/* ici on affiche le champ nom de l'API */}
+                  <SelectItem
+                    key={serv.id} // ex: "service-1" ou "forfait-1"
+                    value={serv.id}
+                  >
+                    <span className="font-medium">{serv.nom}</span>{" "}
+                    <span className="text-xs text-gray-400">
+                      ({serv.type === "service" ? "Service" : "Forfait"})
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -178,10 +184,11 @@ export default function AddAppointmentDialog({
             <Input
               type="number"
               value={form.service?.prix || ""}
-              placeholder="Sélectionnez d'abord un service"
+              placeholder="Sélectionnez d'abord un service ou forfait"
               readOnly
             />
           </div>
+
 
 
           <div className="space-y-2">

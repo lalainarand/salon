@@ -21,7 +21,7 @@ interface AppointmentModalProps {
   initialService?: Service | null | undefined;
   initialStep?: number;
   services: any[];
-  paymentMethods: { id: number; nom: string }[]; 
+  paymentMethods: { id: number; nom: string }[];
 }
 
 interface ClientInfo {
@@ -38,7 +38,7 @@ export default function AppointmentModal({
   initialService,
   initialStep,
   services = [],
-  paymentMethods, 
+  paymentMethods,
 }: AppointmentModalProps & { initialService?: Service | null }) {
 
   if (!isOpen) return null;
@@ -49,15 +49,20 @@ export default function AppointmentModal({
       initialService={initialService}
       initialStep={initialStep}
       services={services}
-      paymentMethods={paymentMethods} 
+      paymentMethods={paymentMethods}
     />
   );
 }
 
 function formatDateForApi(date?: Date | string): string | null {
   if (!date) return null;
-  return new Date(date).toISOString().split("T")[0];
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0"); // Mois commence à 0
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
+
 
 function AppointmentModalContent({
   onClose,
@@ -143,6 +148,8 @@ function AppointmentModalContent({
           return;
         }
 
+        console.log('date', formatDateForApi(selectedDate));
+
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
@@ -151,7 +158,7 @@ function AppointmentModalContent({
           mode_paiement: "stripe",
           stripe_payment_method_id: stripePaymentMethod.id,
           note: clientInfo.note,
-          status: "confirmé",
+          status: "en_attente",
           paye: 1,
           price: selectedService?.prix,
         });
@@ -164,6 +171,9 @@ function AppointmentModalContent({
       }
     } else {
       try {
+        console.log('date', formatDateForApi(selectedDate));
+        console.log('date1', selectedDate);
+
         await api.post("/api/appointments", {
           service_id: selectedService?.id,
           client_id: user?.id,
@@ -171,7 +181,7 @@ function AppointmentModalContent({
           heure: selectedTime,
           mode_paiement: paymentMethod,
           note: clientInfo.note,
-          status: "confirmé",
+          status: "en_attente",
           paye: 0,
         });
       } catch (err: any) {
@@ -348,27 +358,27 @@ function AppointmentModalContent({
 
               {/* ✅ Mode de paiement dynamique */}
               <div className="space-y-4">
-  <Label className="text-base font-medium">Mode de paiement</Label>
-  <div className="flex flex-wrap gap-4 mt-2">
-    {paymentMethods?.length > 0 ? (
-      paymentMethods.map((method) => (
-        <div key={method.id} className="flex items-center space-x-2">
-          <input
-            type="radio"
-            id={`payment-${method.id}`}
-            name="payment"
-            value={method.nom.toLowerCase()}
-            checked={paymentMethod === method.nom.toLowerCase()}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          />
-          <Label htmlFor={`payment-${method.id}`}>{method.nom}</Label>
-        </div>
-      ))
-    ) : (
-      <p className="text-gray-500 text-sm">Aucun mode de paiement disponible</p>
-    )}
-  </div>
-</div>
+                <Label className="text-base font-medium">Mode de paiement</Label>
+                <div className="flex flex-wrap gap-4 mt-2">
+                  {paymentMethods?.length > 0 ? (
+                    paymentMethods.map((method) => (
+                      <div key={method.id} className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id={`payment-${method.id}`}
+                          name="payment"
+                          value={method.nom.toLowerCase()}
+                          checked={paymentMethod === method.nom.toLowerCase()}
+                          onChange={(e) => setPaymentMethod(e.target.value)}
+                        />
+                        <Label htmlFor={`payment-${method.id}`}>{method.nom}</Label>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-sm">Aucun mode de paiement disponible</p>
+                  )}
+                </div>
+              </div>
 
 
               {/* Stripe */}

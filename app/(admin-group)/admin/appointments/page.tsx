@@ -67,7 +67,7 @@ export default function AppointmentsPage() {
   // Récupération des services
   const fetchServices = async () => {
     try {
-      const { data } = await api.get("/api/services");
+      const { data } = await api.get("/api/fusion/serviceforfaits");
       setServices(data);
     } catch (err) {
       console.error("Erreur lors de la récupération des services:", err);
@@ -172,6 +172,7 @@ export default function AppointmentsPage() {
         employe_id: data.employee?.employe?.id ?? null,
         date: data.date,
         heure: data.time,
+        status: data.status ?? 'en_attente',
         notes: data.notes || "",
         mode_paiement: 'especes', // ou data.mode_paiement
       };

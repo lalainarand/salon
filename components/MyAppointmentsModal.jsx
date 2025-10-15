@@ -163,7 +163,7 @@ export default function MyAppointmentsModal({ isOpen, onClose, appointments }) {
               </button>
 
               <h2 className="text-2xl font-semibold text-center mb-6 text-[rgb(135,169,107)]">
-                {isEditing ? "Modifier le rendez-vous" : "Mes rendez-vous"}
+                {isEditing ? "Modifier la date du rendez-vous" : "Mes rendez-vous"}
               </h2>
 
               {/* === CONFIRMATION ANNULATION === */}
@@ -257,11 +257,8 @@ export default function MyAppointmentsModal({ isOpen, onClose, appointments }) {
                             </div>
 
                             {appointment.status === "en_attente" &&
-                              new Date(
-                                appointment.date +
-                                  " " +
-                                  (appointment.heure || "00:00")
-                              ) > new Date() && (
+                              new Date(appointment.date) > new Date() && 
+                                (
                                 <div className="flex sm:flex-col flex-row sm:space-y-2 space-x-2 sm:space-x-0 sm:w-auto">
                                   <button
                                     onClick={() =>
