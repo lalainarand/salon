@@ -66,10 +66,25 @@ export default function AddAppointmentDialog({
 
   useEffect(() => {
     if (mode === "edit" && initialData) {
-      setForm(initialData)
-      console.log('form edition', initialData)
+      // Fusionne service et forfait en un seul objet pour le Select
+      const selected =
+        initialData.service
+          ? { ...initialData.service, type: "service" as const }
+          : initialData.forfait
+            ? { ...initialData.forfait, type: "forfait" as const }
+            : null;
+
+      setForm({
+        ...initialData,
+        service: selected, // champ unique pour Select
+        forfait: null,     // on supprime l'ancien forfait pour éviter confusion
+      });
+
+      console.log("🟢 Form édition initialisé :", {
+        service: selected,
+        form: { ...initialData, service: selected, forfait: null },
+      });
     } else if (mode === "add") {
-      // Reset le formulaire pour un nouveau rendez-vous
       setForm({
         id: Date.now(),
         user: null,
@@ -77,12 +92,14 @@ export default function AddAppointmentDialog({
         employee: null,
         date: "",
         time: "",
-        duration: "60",
+        duration: "",
         status: "en_attente",
         notes: "",
-      })
+        forfait: null,
+      });
     }
-  }, [initialData, mode, open])
+  }, [initialData, mode, open]);
+
 
   const handleChange = <K extends keyof AppointmentFormType>(key: K, value: AppointmentFormType[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -154,14 +171,21 @@ export default function AddAppointmentDialog({
               value={form.service?.id?.toString() || ""}
               onValueChange={(value) => {
                 const selected = services.find((s) => s.id.toString() === value);
+                console.log("🟡 Select changé :", { value, selected });
+
                 if (selected) {
-                  handleChange("service", selected); // met à jour le service sélectionné
+                  handleChange("service", selected); // met à jour le service/forfait
+                  // plus besoin de gérer forfait séparément
                 }
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un service ou forfait" />
+                {/* Affiche le nom du service ou forfait sélectionné */}
+                <SelectValue>
+                  {form.service?.nom || "Sélectionner un service ou forfait"}
+                </SelectValue>
               </SelectTrigger>
+
               <SelectContent className="max-h-60 overflow-y-auto">
                 {services.map((serv) => (
                   <SelectItem key={serv.id} value={serv.id.toString()}>
@@ -174,6 +198,7 @@ export default function AddAppointmentDialog({
               </SelectContent>
             </Select>
           </div>
+
 
 
           {/* Prix */}

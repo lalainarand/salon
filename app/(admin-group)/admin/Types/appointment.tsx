@@ -44,6 +44,7 @@ export type AppointmentFormType = {
   id: number
   user: User | null
   service: Service | null
+  forfait?: Service | null
   employee: Employees | null
   date: string
   time: string
