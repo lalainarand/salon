@@ -69,7 +69,7 @@ export function CalendarComponent() {
     // Récupère les services depuis l'API
     const fetchServices = async () => {
       try {
-        const { data } = await api.get("/api/services");
+        const { data } = await api.get("/api/fusion/serviceforfaits");
 
         console.log("Services from API:", data);
         setServices(data);

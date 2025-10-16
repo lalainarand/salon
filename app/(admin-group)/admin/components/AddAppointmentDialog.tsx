@@ -151,9 +151,9 @@ export default function AddAppointmentDialog({
           <div className="space-y-2">
             <Label>Service ou Forfait *</Label>
             <Select
-              value={form.service?.id || ""}
+              value={form.service?.id?.toString() || ""}
               onValueChange={(value) => {
-                const selected = services.find((s) => s.id === value);
+                const selected = services.find((s) => s.id.toString() === value);
                 if (selected) {
                   handleChange("service", selected); // met à jour le service sélectionné
                 }
@@ -164,10 +164,7 @@ export default function AddAppointmentDialog({
               </SelectTrigger>
               <SelectContent className="max-h-60 overflow-y-auto">
                 {services.map((serv) => (
-                  <SelectItem
-                    key={serv.id} // ex: "service-1" ou "forfait-1"
-                    value={serv.id}
-                  >
+                  <SelectItem key={serv.id} value={serv.id.toString()}>
                     <span className="font-medium">{serv.nom}</span>{" "}
                     <span className="text-xs text-gray-400">
                       ({serv.type === "service" ? "Service" : "Forfait"})
@@ -177,6 +174,7 @@ export default function AddAppointmentDialog({
               </SelectContent>
             </Select>
           </div>
+
 
           {/* Prix */}
           <div className="space-y-2">

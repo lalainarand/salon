@@ -17,6 +17,7 @@ export interface Employees {
   role_id: number
   created_at: string
   updated_at: string
+  poste: string
   status: string
   employe?: {
     id: number
@@ -31,6 +32,7 @@ export interface Employees {
 export interface Service {
   id: number
   nom: string
+  type: "service" | "forfait";
   prix: number
   description?: string
   duration?: string
