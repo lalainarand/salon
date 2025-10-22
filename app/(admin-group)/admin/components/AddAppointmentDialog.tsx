@@ -58,7 +58,7 @@ export default function AddAppointmentDialog({
       employee: null,
       date: "",
       time: "",
-      duration: "60",
+      duration: "",
       status: "en_attente",
       notes: "",
     }
@@ -131,7 +131,7 @@ export default function AddAppointmentDialog({
 
           {/* Client */}
           <div className="space-y-2">
-            <Label>Client *</Label>
+            <Label>Choisir parmi client existant</Label>
             <Select
               value={form.user?.id ? form.user.id.toString() : ""}
               onValueChange={(value) => {
@@ -242,16 +242,13 @@ export default function AddAppointmentDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Poste</Label>
+            <Label>Nouveau client</Label>
             <Input
               type="text"
-              value={
-                form.employee?.employe?.poste
-                  ? form.employee.employe.poste
-                  : form.employee?.poste ?? ""
-              }
-              placeholder="Sélectionnez d'abord un employé"
-              readOnly
+              value={form.newclient || ""}
+              onChange={(e) => handleChange("newclient", e.target.value)}
+
+              placeholder="Ajouter ici si nouveau client"
             />
           </div>
 

@@ -17,7 +17,6 @@ export interface Employees {
   role_id: number
   created_at: string
   updated_at: string
-  poste: string
   status: string
   employe?: {
     id: number
@@ -51,4 +50,6 @@ export type AppointmentFormType = {
   duration: string
   status: string
   notes?: string
+  newclient?: string; 
+
 }

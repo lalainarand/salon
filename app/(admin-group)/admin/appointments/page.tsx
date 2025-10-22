@@ -182,6 +182,7 @@ export default function AppointmentsPage() {
         status: data.status ?? 'en_attente',
         notes: data.notes || "",
         mode_paiement: 'especes', // ou data.mode_paiement
+        newclient: data.newclient || "", 
       };
 
       console.log('data', data);
