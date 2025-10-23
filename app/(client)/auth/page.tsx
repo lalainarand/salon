@@ -30,6 +30,10 @@ export default function AuthPage() {
       (data) => {
         showSuccess("Connexion réussie !");
         router.push("/services");
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
       }
     )
   }

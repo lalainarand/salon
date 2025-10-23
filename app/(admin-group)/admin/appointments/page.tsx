@@ -190,6 +190,7 @@ export default function AppointmentsPage() {
 
       if (selectedAppointment) {
         // Mise à jour d'un rendez-vous existant
+        console.log('ato',filteredData)
         await api.put(`/api/appointments/${data.id}`, filteredData);
         showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`);
       } else {
