@@ -152,20 +152,24 @@ export default function AddAppointmentDialog({
     phone.trim().length >= 3
 
   const handleSubmit = () => {
-    if (!isFormValid) return
+    if (!isFormValid) return;
 
+    // Nouveau client
     if (!form.user) {
-      handleChange("newclient", query)
-      form.user = {
-        id: 0,
-        name: query,
-        phone,
-      } as unknown as User
+      if (!query.trim() || !phone.trim()) {
+        alert("Veuillez renseigner le nom et le téléphone du nouveau client.");
+        return;
+      }
+
+      handleChange("newclient", query.trim());
+      handleChange("phone", phone.trim());
+      handleChange("user", null); 
     }
 
-    onSubmit(form)
-    onOpenChange(false)
-  }
+    onSubmit(form);
+    onOpenChange(false);
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -222,18 +226,27 @@ export default function AddAppointmentDialog({
           </div>
 
           {/* 🧴 Service */}
-          <div className="space-y-2">
+           <div className="space-y-2">
             <Label>Service ou Forfait *</Label>
             <Select
               value={form.service?.id?.toString() || ""}
               onValueChange={(value) => {
-                const selected = services.find((s) => s.id.toString() === value)
-                if (selected) handleChange("service", selected)
+                const selected = services.find((s) => s.id.toString() === value);
+                console.log("🟡 Select changé :", { value, selected });
+
+                if (selected) {
+                  handleChange("service", selected); // met à jour le service/forfait
+                  // plus besoin de gérer forfait séparément
+                }
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un service ou forfait" />
+                {/* Affiche le nom du service ou forfait sélectionné */}
+                <SelectValue>
+                  {form.service?.nom || "Sélectionner un service ou forfait"}
+                </SelectValue>
               </SelectTrigger>
+
               <SelectContent className="max-h-60 overflow-y-auto">
                 {services.map((serv) => (
                   <SelectItem key={serv.id} value={serv.id.toString()}>
