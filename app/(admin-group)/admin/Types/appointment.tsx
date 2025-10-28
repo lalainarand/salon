@@ -2,7 +2,7 @@
 export interface User {
   id: number
   name: string
-  phone: number
+  phone: string
   email?: string
   status?: string
   createdAt?: string
@@ -50,6 +50,8 @@ export type AppointmentFormType = {
   duration: string
   status: string
   notes?: string
-  newclient?: string; 
+  newclient?: string
+  phone?: string
+
 
 }

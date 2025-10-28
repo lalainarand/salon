@@ -1,5 +1,6 @@
 "use client"
 
+import api from "@/lib/api";
 import { useEffect, useState } from "react"
 import {
   Dialog,
@@ -20,9 +21,12 @@ import {
   SelectContent,
   SelectItem
 } from "@/components/ui/select"
-import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin-group)/admin/Types/appointment"
-
-
+import type {
+  AppointmentFormType,
+  User,
+  Employees,
+  Service
+} from "@/app/(admin-group)/admin/Types/appointment"
 
 interface AddAppointmentDialogProps {
   open: boolean
@@ -46,11 +50,8 @@ export default function AddAppointmentDialog({
   employees
 }: AddAppointmentDialogProps) {
   const [form, setForm] = useState<AppointmentFormType>(() => {
-    if (mode === "edit" && initialData) {
-      return initialData
-    }
+    if (mode === "edit" && initialData) return initialData
 
-    // Pour le mode "add", on initialise avec des valeurs vides
     return {
       id: Date.now(),
       user: null,
@@ -61,29 +62,32 @@ export default function AddAppointmentDialog({
       duration: "",
       status: "en_attente",
       notes: "",
+      newclient: "",
     }
   })
 
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<User[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [phone, setPhone] = useState("")
+
   useEffect(() => {
     if (mode === "edit" && initialData) {
-      // Fusionne service et forfait en un seul objet pour le Select
       const selected =
         initialData.service
           ? { ...initialData.service, type: "service" as const }
           : initialData.forfait
             ? { ...initialData.forfait, type: "forfait" as const }
-            : null;
+            : null
 
       setForm({
         ...initialData,
-        service: selected, // champ unique pour Select
-        forfait: null,     // on supprime l'ancien forfait pour éviter confusion
-      });
-
-      console.log("🟢 Form édition initialisé :", {
         service: selected,
-        form: { ...initialData, service: selected, forfait: null },
-      });
+        forfait: null,
+      })
+
+      setQuery(initialData.user?.name || "")
+      setPhone(initialData.user?.phone || "")
     } else if (mode === "add") {
       setForm({
         id: Date.now(),
@@ -96,21 +100,69 @@ export default function AddAppointmentDialog({
         status: "en_attente",
         notes: "",
         forfait: null,
-      });
+        newclient: "",
+      })
+      setQuery("")
+      setPhone("")
     }
-  }, [initialData, mode, open]);
+  }, [initialData, mode, open])
 
-
-  const handleChange = <K extends keyof AppointmentFormType>(key: K, value: AppointmentFormType[K]) => {
+  const handleChange = <K extends keyof AppointmentFormType>(
+    key: K,
+    value: AppointmentFormType[K]
+  ) => {
     setForm((prev) => ({ ...prev, [key]: value }))
-    console.log('form', form);
   }
 
-  const handleSubmit = () => {
-    if (!form.user || !form.service || !form.date || !form.time) {
-      alert("Veuillez remplir tous les champs obligatoires")
+  // 🔍 Recherche client existant
+  useEffect(() => {
+    if (query.length < 3) {
+      setResults([])
+      setShowDropdown(false)
       return
     }
+
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await api.get(`/api/users/search?q=${query}`)
+        setResults(res.data)
+        setShowDropdown(true)
+      } catch (error) {
+        console.error("Erreur recherche client :", error)
+      }
+    }, 300)
+
+
+    return () => clearTimeout(timeout)
+  }, [query])
+
+  const handleSelectUser = (user: User) => {
+    handleChange("user", user)
+    setQuery(user.name)
+    setPhone(user.phone || "")
+    setShowDropdown(false)
+  }
+
+  // ⚙️ Vérifie si le formulaire est complet
+  const isFormValid =
+    (form.user || (query.trim() && phone.trim())) &&
+    form.service &&
+    form.date &&
+    form.time &&
+    phone.trim().length >= 3
+
+  const handleSubmit = () => {
+    if (!isFormValid) return
+
+    if (!form.user) {
+      handleChange("newclient", query)
+      form.user = {
+        id: 0,
+        name: query,
+        phone,
+      } as unknown as User
+    }
+
     onSubmit(form)
     onOpenChange(false)
   }
@@ -128,64 +180,60 @@ export default function AddAppointmentDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 py-4">
-
-          {/* Client */}
-          <div className="space-y-2">
-            <Label>Choisir parmi client existant</Label>
-            <Select
-              value={form.user?.id ? form.user.id.toString() : ""}
-              onValueChange={(value) => {
-                const selected = users.find((u) => u.id.toString() === value)
-                if (selected) {
-                  handleChange("user", selected)
-                }
+          {/* 👤 Client */}
+          <div className="relative space-y-2">
+            <Label>Client *</Label>
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setShowDropdown(true)
+                handleChange("user", null)
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un client" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.name}
-                  </SelectItem>
+              placeholder="Entrez le nom ou téléphone"
+              autoComplete="off"
+            />
+
+            {showDropdown && results.length > 0 && (
+              <ul className="absolute z-10 bg-white border rounded-md w-full shadow-md mt-1 max-h-48 overflow-auto">
+                {results.map((user) => (
+                  <li
+                    key={user.id}
+                    onClick={() => handleSelectUser(user)}
+                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {user.name} — {user.phone}
+                  </li>
                 ))}
-              </SelectContent>
-            </Select>
+              </ul>
+            )}
           </div>
 
-          {/* Téléphone */}
+          {/* 📞 Téléphone */}
           <div className="space-y-2">
-            <Label>Téléphone</Label>
+            <Label>Téléphone *</Label>
             <Input
-              value={form.user?.phone.toString() || ""}
-              placeholder="Sélectionnez d'abord un client"
-              readOnly
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Numéro de téléphone"
+              readOnly={!!form.user} // lecture seule si client existant
+              required
             />
           </div>
 
-          {/* Service / Forfait */}
+          {/* 🧴 Service */}
           <div className="space-y-2">
             <Label>Service ou Forfait *</Label>
             <Select
               value={form.service?.id?.toString() || ""}
               onValueChange={(value) => {
-                const selected = services.find((s) => s.id.toString() === value);
-                console.log("🟡 Select changé :", { value, selected });
-
-                if (selected) {
-                  handleChange("service", selected); // met à jour le service/forfait
-                  // plus besoin de gérer forfait séparément
-                }
+                const selected = services.find((s) => s.id.toString() === value)
+                if (selected) handleChange("service", selected)
               }}
             >
               <SelectTrigger>
-                {/* Affiche le nom du service ou forfait sélectionné */}
-                <SelectValue>
-                  {form.service?.nom || "Sélectionner un service ou forfait"}
-                </SelectValue>
+                <SelectValue placeholder="Sélectionner un service ou forfait" />
               </SelectTrigger>
-
               <SelectContent className="max-h-60 overflow-y-auto">
                 {services.map((serv) => (
                   <SelectItem key={serv.id} value={serv.id.toString()}>
@@ -199,9 +247,7 @@ export default function AddAppointmentDialog({
             </Select>
           </div>
 
-
-
-          {/* Prix */}
+          {/* 💰 Prix */}
           <div className="space-y-2">
             <Label>Prix (Ar)</Label>
             <Input
@@ -212,48 +258,30 @@ export default function AddAppointmentDialog({
             />
           </div>
 
-
-
+          {/* 👩 Employé */}
           <div className="space-y-2">
-            <div className="space-y-2">
-              <Label htmlFor="employee">Employé</Label>
-              <Select
-                value={form.employee?.id ? form.employee.id.toString() : ""}
-                onValueChange={(value) => {
-                  const selected = employees.find((u) => u.id.toString() === value)
-                  if (selected) {
-                    handleChange("employee", selected)
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un employé" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee?.id} value={employee.id.toString()}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-            </div>
+            <Label>Employé</Label>
+            <Select
+              value={form.employee?.id?.toString() || ""}
+              onValueChange={(value) => {
+                const selected = employees.find((e) => e.id.toString() === value)
+                if (selected) handleChange("employee", selected)
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un employé" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id.toString()}>
+                    {emp.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Nouveau client</Label>
-            <Input
-              type="text"
-              value={form.newclient || ""}
-              onChange={(e) => handleChange("newclient", e.target.value)}
-
-              placeholder="Ajouter ici si nouveau client"
-            />
-          </div>
-
-
-          {/* Date */}
+          {/* 📅 Date */}
           <div className="space-y-2">
             <Label>Date *</Label>
             <Input
@@ -263,7 +291,7 @@ export default function AddAppointmentDialog({
             />
           </div>
 
-          {/* Heure */}
+          {/* ⏰ Heure */}
           <div className="space-y-2">
             <Label>Heure *</Label>
             <Input
@@ -273,7 +301,7 @@ export default function AddAppointmentDialog({
             />
           </div>
 
-          {/* Notes */}
+          {/* 📝 Notes */}
           <div className="col-span-2 space-y-2">
             <Label>Notes</Label>
             <Textarea
@@ -291,6 +319,7 @@ export default function AddAppointmentDialog({
           <Button
             className="bg-[rgb(135,169,107)] hover:bg-[rgb(135,169,107)]/90"
             onClick={handleSubmit}
+            disabled={!isFormValid} // 🔒 désactivé tant que formulaire incomplet
           >
             {mode === "edit" ? "Modifier" : "Créer"}
           </Button>

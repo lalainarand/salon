@@ -169,46 +169,51 @@ export default function AppointmentsPage() {
   }, []);
 
 
-
   const handleSaveAppointment = async (data: AppointmentFormType) => {
     try {
-      // Préparer uniquement les champs nécessaires pour l'API
+
+      // Déterminer si c'est un nouveau client ou un client existant
+      // Tout client avec id <= 0 ou null est considéré comme nouveau
+      const isNewClient = !data.user || data.user.id <= 0;
+
+      // Préparer les données à envoyer à l'API
       const filteredData = {
         service_id: data.service?.id,
-        client_id: data.user?.id,
-        employe_id: data.employee?.employe?.id ?? null,
+        client_id: isNewClient ? null : data.user?.id,
+        employe_id: data.employee?.id ?? null,
         date: data.date,
         heure: data.time,
-        status: data.status ?? 'en_attente',
+        status: data.status ?? "en_attente",
         notes: data.notes || "",
-        mode_paiement: 'especes', // ou data.mode_paiement
-        newclient: data.newclient || "", 
+        mode_paiement: "especes", // tu peux changer selon besoin
+        newclient: isNewClient ? data.user?.name || data.newclient : null,
+        phone: isNewClient ? data.user?.phone : data.user?.phone,
       };
-
-      console.log('data', data);
-      console.log('filterdata', filteredData);
+      console.log("🟢 Données préparées :", filteredData);
 
       if (selectedAppointment) {
-        // Mise à jour d'un rendez-vous existant
-        console.log('ato',filteredData)
+        // Mise à jour d’un rendez-vous existant
         await api.put(`/api/appointments/${data.id}`, filteredData);
-        showSuccess(`Rendez-vous de ${data.user?.name} modifié avec succès`);
+        showSuccess(
+          `Rendez-vous de ${data.user?.name || data.newclient} modifié avec succès`
+        );
       } else {
-        // Création d'un nouveau rendez-vous
+        // Création d’un nouveau rendez-vous
         await api.post("/api/appointments", filteredData);
-        showSuccess(`Nouveau rendez-vous créé pour ${data.user?.name}`);
+        showSuccess(
+          `Nouveau rendez-vous créé pour ${data.user?.name || data.newclient}`
+        );
       }
 
-      // Réinitialiser la sélection et fermer la modal
+      // Réinitialiser et fermer la modal
       setSelectedAppointment(null);
       setIsDialogOpen(false);
 
-      // Rafraîchir la liste des rendez-vous en conservant la page actuelle
+      // Rafraîchir la liste des rendez-vous
       await fetchAppointments(currentPage);
-
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde :", error);
-      // Ici tu peux afficher une notification d'erreur si tu veux
+      console.error("❌ Erreur lors de la sauvegarde :", error);
+      alert("Une erreur est survenue lors de la sauvegarde du rendez-vous.");
     }
   };
 
