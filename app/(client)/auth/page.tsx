@@ -18,6 +18,10 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { showSuccess, hideNotification, notification } = useSuccessNotification();
+  const [email, setEmail] = useState("hapowav569@idsho.com")
+  const [password, setPassword] = useState("B]P9kKa-sy.1x-3I")
+
+
 
   const { login, register, loading, error } = useAuth()
 
@@ -89,7 +93,16 @@ export default function AuthPage() {
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="email" type="email" placeholder="votre@email.com" className="pl-10" required />
+                      {/* <Input id="email" type="email" placeholder="votre@email.com" className="pl-10" required /> */}
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email} // valeur contrôlée
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="votre@email.com"
+                        className="pl-10"
+                        required
+                      />
                     </div>
                   </div>
 
@@ -97,9 +110,18 @@ export default function AuthPage() {
                     <Label htmlFor="password">Mot de passe</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      {/* <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Votre mot de passe"
+                        className="pl-10 pr-10"
+                        required
+                      /> */}
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         placeholder="Votre mot de passe"
                         className="pl-10 pr-10"
                         required
