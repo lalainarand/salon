@@ -90,7 +90,7 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const { data } = await api.get("/api/settings");
-      console.log('resulatats de settings', data)
+      console.log("🟢 Résultat brut de l’API :", data.notification);
       const mappedOpeningHours: OpeningHours = {};
       data.horaireOuverture.forEach((h: any) => {
         mappedOpeningHours[h.jour.toLowerCase()] = {
@@ -117,11 +117,11 @@ export default function SettingsPage() {
         openingHours: mappedOpeningHours,
         paymentMethods: mappedPaymentMethods,
         notifications: {
-          emailReminders: data.notifications?.rappels_email === 1,
-          smsReminders: data.notifications?.rappels_sms === 1,
-          confirmationEmails: data.notifications?.confirmation_email === 1,
-          cancellationNotifications: data.notifications?.annulation_notif === 1,
-          reminderHours: data.notifications?.delai_rappel_heures || 24,
+          emailReminders: data.notification?.rappels_email === 1,
+          smsReminders: data.notification?.rappels_sms === 1,
+          confirmationEmails: data.notification?.confirmation_email === 1,
+          cancellationNotifications: data.notification?.annulation_notif === 1,
+          reminderHours: data.notification?.delai_rappel_heures || 24,
         },
 
         cancellationPolicy: {
@@ -130,6 +130,17 @@ export default function SettingsPage() {
           description: data.condition?.description || "",
         },
       });
+
+      console.log("🧭 Settings après mappage :", {
+        notifications: {
+          emailReminders: data.notification?.rappels_email === 1,
+          smsReminders: data.notification?.rappels_sms === 1,
+          confirmationEmails: data.notification?.confirmation_email === 1,
+          cancellationNotifications: data.notification?.annulation_notif === 1,
+          reminderHours: data.notification?.delai_rappel_heures || 24,
+        },
+      });
+
     } catch (error) {
       console.error("Erreur lors du fetch des settings:", error);
     }

@@ -41,6 +41,7 @@ export default function AdminDashboard() {
   const [recentRdv, setRecentRdv] = useState<Rdv[]>([])
   const [caChart, setCaChart] = useState<any[]>([])
   const [serviceChart, setServiceChart] = useState<any[]>([])
+  const [rdvPerEmploye, setRdvPerEmploye] = useState<any[]>([])
 
   const fetchDashboardStats = async (filter: string, date?: Date) => {
     try {
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
         params.date = date.toISOString()
       }
       const { data } = await api.get("/api/dashboard/stats", { params })
-      console.log("Données du dashboard:", data)
+      console.log("Données du dashboard rdv_per_employe:", data.employe_chart)
 
       setStatsData([
         {
@@ -89,6 +90,7 @@ export default function AdminDashboard() {
       setRecentRdv(data.recent_rdv)
       setCaChart(data.ca_chart)
       setServiceChart(data.service_chart)
+      setRdvPerEmploye(data.employe_chart);
     } catch (err) {
       console.error("Erreur récupération dashboard:", err)
     }
@@ -248,6 +250,35 @@ export default function AdminDashboard() {
         </Card>
 
       </div>
+
+      {/* Répartition des RDV par employé */}
+      <div className="mt-8 mb-8">
+        <Card className="border rounded-lg shadow-sm">
+          <CardHeader>
+            <CardTitle>Répartition des rendez-vous par employé</CardTitle>
+            <CardDescription>Nombre de rendez-vous pour chaque employé</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <table className="w-full border rounded-lg overflow-hidden">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3 border text-left">Employé</th>
+                  <th className="p-3 border text-left">Nombre de RDV</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rdvPerEmploye?.map(emp => (
+                  <tr key={emp.employe_id} className="hover:bg-gray-50">
+                    <td className="p-3 border">{emp.name}</td>
+                    <td className="p-3 border">{emp.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      </div>
+
     </div>
   )
 }

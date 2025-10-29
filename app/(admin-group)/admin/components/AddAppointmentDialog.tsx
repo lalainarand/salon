@@ -161,9 +161,12 @@ export default function AddAppointmentDialog({
         return;
       }
 
-      handleChange("newclient", query.trim());
-      handleChange("phone", phone.trim());
-      handleChange("user", null); 
+      handleChange("newclient", query)
+      form.user = {
+        id: 0,
+        name: query,
+        phone,
+      } as unknown as User
     }
 
     onSubmit(form);
@@ -226,7 +229,7 @@ export default function AddAppointmentDialog({
           </div>
 
           {/* 🧴 Service */}
-           <div className="space-y-2">
+          <div className="space-y-2">
             <Label>Service ou Forfait *</Label>
             <Select
               value={form.service?.id?.toString() || ""}

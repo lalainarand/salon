@@ -15,6 +15,7 @@ import ConfirmDeleteDialog from "@/app/(admin-group)/admin/components/ConfirmDel
 import ConfirmToggleDialog from "@/app/(admin-group)/admin/components/ConfirmToggleDialog"
 import type { AppointmentFormType, User, Employees, Service } from "@/app/(admin-group)/admin/Types/appointment"
 import SuccessNotification, { useSuccessNotification } from "@/app/(admin-group)/admin/components/SuccessNotification"
+import ErrorNotification, { useErrorNotification } from "@/app/(admin-group)/admin/components/ErrorNotification"
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react"
 import { RefreshCw } from "lucide-react"
 
@@ -46,6 +47,7 @@ const getStatusBadge = (status: string) => {
 export default function AppointmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const { notification: errorNotif, showError, hideNotification: hideError } = useErrorNotification()
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [openConfirmStatusDialog, setOpenConfirmStatusDialog] = useState(false)
@@ -171,6 +173,7 @@ export default function AppointmentsPage() {
 
   const handleSaveAppointment = async (data: AppointmentFormType) => {
     try {
+      console.log('data',data)
 
       // Déterminer si c'est un nouveau client ou un client existant
       // Tout client avec id <= 0 ou null est considéré comme nouveau
@@ -213,7 +216,7 @@ export default function AppointmentsPage() {
       await fetchAppointments(currentPage);
     } catch (error) {
       console.error("❌ Erreur lors de la sauvegarde :", error);
-      alert("Une erreur est survenue lors de la sauvegarde du rendez-vous.");
+      showError("Une erreur est survenue lors de la sauvegarde du rendez-vous.")
     }
   };
 
@@ -519,6 +522,14 @@ export default function AppointmentsPage() {
                 message={notification.message}
                 onClose={hideNotification}
                 duration={4000} // 4 secondes
+              />
+
+              <ErrorNotification
+                show={errorNotif.show}
+                message={errorNotif.message}
+                onClose={hideError}
+                duration={4000} // 4 secondes
+
               />
             </div>
           </div>
